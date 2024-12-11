@@ -7,9 +7,9 @@ import com.simplemobiletools.commons.activities.BaseSplashActivity
 class SplashActivity : BaseSplashActivity() {
     override fun initActivity() {
         when {
-            intent?.action == "android.intent.action.SHOW_TIMERS" -> {
+            intent?.action == "android.intent.action.SHOW_LAPS" -> {
                 Intent(this, MainActivity::class.java).apply {
-                    putExtra(OPEN_TAB, TAB_TIMER)
+                    putExtra(OPEN_TAB, TAB_LAP)
                     startActivity(this)
                 }
             }
@@ -25,19 +25,10 @@ class SplashActivity : BaseSplashActivity() {
             intent.extras?.containsKey(OPEN_TAB) == true -> {
                 Intent(this, MainActivity::class.java).apply {
                     putExtra(OPEN_TAB, intent.getIntExtra(OPEN_TAB, TAB_STOPWATCH))
-                    putExtra(TIMER_ID, intent.getIntExtra(TIMER_ID, INVALID_TIMER_ID))
+                    putExtra(LAP_ID, intent.getIntExtra(LAP_ID, INVALID_LAP_ID))
                     startActivity(this)
                 }
             }
-
-            IntentHandlerActivity.HANDLED_ACTIONS.contains(intent?.action) -> {
-                Intent(intent).apply {
-                    setClass(this@SplashActivity, IntentHandlerActivity::class.java)
-                    startActivity(this)
-                }
-            }
-
-            else -> startActivity(Intent(this, MainActivity::class.java))
         }
         finish()
     }

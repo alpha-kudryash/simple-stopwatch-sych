@@ -53,9 +53,11 @@ const val EARLY_ALARM_NOTIF_ID = 10003
 
 const val OPEN_TAB = "open_tab"
 const val TAB_STOPWATCH = 0
-const val TAB_TIMER = 1
-const val TIMER_ID = "timer_id"
-const val INVALID_TIMER_ID = -1
+const val TAB_LAP = 1
+const val LAP_ID = "lap_id"
+const val STOPWATCH_ID = "stopwatch_id"
+const val INVALID_LAP_ID = -1
+const val INVALID_STOPWATCH_ID = -1
 
 // stopwatch sorting
 const val SORT_BY_LAP = 1

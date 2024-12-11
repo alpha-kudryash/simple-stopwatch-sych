@@ -14,34 +14,18 @@ import android.view.animation.AnimationUtils
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.databinding.ActivityReminderBinding
 import com.simplemobiletools.clock.extensions.*
-import com.simplemobiletools.clock.helpers.ALARM_ID
-import com.simplemobiletools.clock.helpers.ALARM_NOTIF_ID
-import com.simplemobiletools.clock.helpers.getPassedSeconds
-import com.simplemobiletools.clock.models.Alarm
 import com.simplemobiletools.commons.extensions.*
 import com.simplemobiletools.commons.helpers.*
 
 class ReminderActivity : SimpleActivity() {
-    companion object {
-        private const val MIN_ALARM_VOLUME_FOR_INCREASING_ALARMS = 1
-        private const val INCREASE_VOLUME_DELAY = 300L
-    }
-
     private val increaseVolumeHandler = Handler(Looper.getMainLooper())
     private val maxReminderDurationHandler = Handler(Looper.getMainLooper())
     private val swipeGuideFadeHandler = Handler()
     private val vibrationHandler = Handler(Looper.getMainLooper())
     private var isAlarmReminder = false
     private var didVibrate = false
-    private var wasAlarmSnoozed = false
-    private var alarm: Alarm? = null
-    private var audioManager: AudioManager? = null
-    private var mediaPlayer: MediaPlayer? = null
-    private var vibrator: Vibrator? = null
-    private var initialAlarmVolume: Int? = null
     private var dragDownX = 0f
     private val binding: ActivityReminderBinding by viewBinding(ActivityReminderBinding::inflate)
-    private var finished = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         isMaterialActivity = true
@@ -52,7 +36,6 @@ class ReminderActivity : SimpleActivity() {
         updateStatusbarColor(getProperBackgroundColor())
 
         setupButtons()
-        setupEffects()
     }
 
     private fun setupButtons() {
@@ -137,57 +120,6 @@ class ReminderActivity : SimpleActivity() {
         binding.reminderStop.background = resources.getColoredDrawableWithColor(R.drawable.circle_background_filled, getProperPrimaryColor())
         arrayOf(binding.reminderSnooze, binding.reminderDraggableBackground, binding.reminderDraggable, binding.reminderDismiss).forEach {
             it.beGone()
-        }
-    }
-
-    private fun setupEffects() {
-        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        initialAlarmVolume = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) ?: 7
-
-        val doVibrate = alarm?.vibrate ?: config.timerVibrate
-        if (doVibrate && isOreoPlus()) {
-            val pattern = LongArray(2) { 500 }
-            vibrationHandler.postDelayed({
-                vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
-            }, 500)
-        }
-
-        val soundUri = if (alarm != null) {
-            alarm!!.soundUri
-        } else {
-            config.timerSoundUri
-        }
-
-        if (soundUri != SILENT) {
-            try {
-                mediaPlayer = MediaPlayer().apply {
-                    setAudioStreamType(AudioManager.STREAM_ALARM)
-                    setDataSource(this@ReminderActivity, Uri.parse(soundUri))
-                    isLooping = true
-                    prepare()
-                    start()
-                }
-
-                if (config.increaseVolumeGradually) {
-                    scheduleVolumeIncrease(MIN_ALARM_VOLUME_FOR_INCREASING_ALARMS.toFloat(), initialAlarmVolume!!.toFloat(), 0)
-                }
-            } catch (e: Exception) {
-            }
-        }
-    }
-
-    private fun scheduleVolumeIncrease(lastVolume: Float, maxVolume: Float, delay: Long) {
-        increaseVolumeHandler.postDelayed({
-            val newLastVolume = (lastVolume + 0.1f).coerceAtMost(maxVolume)
-            audioManager?.setStreamVolume(AudioManager.STREAM_ALARM, newLastVolume.toInt(), 0)
-            scheduleVolumeIncrease(newLastVolume, maxVolume, INCREASE_VOLUME_DELAY)
-        }, delay)
-    }
-
-    private fun resetVolumeToInitialValue() {
-        initialAlarmVolume?.apply {
-            audioManager?.setStreamVolume(AudioManager.STREAM_ALARM, this, 0)
         }
     }
 

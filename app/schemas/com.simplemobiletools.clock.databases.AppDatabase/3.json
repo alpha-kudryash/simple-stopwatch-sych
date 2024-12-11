@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "0d277b1102f0c2ab1f3acef49ef9a2ef",
+    "identityHash": "b9109c9039ca054d68ad704df010f4fd",
     "entities": [
       {
         "tableName": "timers",
@@ -80,17 +80,17 @@
       },
       {
         "tableName": "laps",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `stopwatchSetId` INTEGER NOT NULL, `milliseconds` INTEGER NOT NULL, `text` TEXT NOT NULL, `label` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `channelId` TEXT, `oneShot` INTEGER NOT NULL, FOREIGN KEY(`stopwatchSetId`) REFERENCES `stopwatch_sets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `stopwatchSetNum` INTEGER NOT NULL, `milliseconds` INTEGER NOT NULL, `text` TEXT NOT NULL, `label` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `channelId` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
             "affinity": "INTEGER",
-            "notNull": false
+            "notNull": true
           },
           {
-            "fieldPath": "stopwatchSetId",
-            "columnName": "stopwatchSetId",
+            "fieldPath": "stopwatchSetNum",
+            "columnName": "stopwatchSetNum",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -123,12 +123,6 @@
             "columnName": "channelId",
             "affinity": "TEXT",
             "notNull": false
-          },
-          {
-            "fieldPath": "oneShot",
-            "columnName": "oneShot",
-            "affinity": "INTEGER",
-            "notNull": true
           }
         ],
         "primaryKey": {
@@ -138,25 +132,13 @@
           ]
         },
         "indices": [],
-        "foreignKeys": [
-          {
-            "table": "stopwatch_sets",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "stopwatchSetId"
-            ],
-            "referencedColumns": [
-              "id"
-            ]
-          }
-        ]
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0d277b1102f0c2ab1f3acef49ef9a2ef')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b9109c9039ca054d68ad704df010f4fd')"
     ]
   }
 }

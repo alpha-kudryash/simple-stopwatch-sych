@@ -8,11 +8,8 @@ import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.activities.SimpleActivity
 import com.simplemobiletools.clock.databinding.ItemTimerBinding
 import com.simplemobiletools.clock.extensions.getFormattedDuration
-import com.simplemobiletools.clock.extensions.hideTimerNotification
 import com.simplemobiletools.clock.extensions.secondsToMillis
-import com.simplemobiletools.clock.models.Timer
-import com.simplemobiletools.clock.models.TimerEvent
-import com.simplemobiletools.clock.models.TimerState
+import com.simplemobiletools.clock.models.*
 import com.simplemobiletools.commons.adapters.MyRecyclerViewListAdapter
 import com.simplemobiletools.commons.dialogs.PermissionRequiredDialog
 import com.simplemobiletools.commons.extensions.*
@@ -20,20 +17,20 @@ import com.simplemobiletools.commons.views.MyRecyclerView
 import me.grantland.widget.AutofitHelper
 import org.greenrobot.eventbus.EventBus
 
-class TimerAdapter(
+class LapAdapter(
     private val simpleActivity: SimpleActivity,
     recyclerView: MyRecyclerView,
     onRefresh: () -> Unit,
-    onItemClick: (Timer) -> Unit,
-) : MyRecyclerViewListAdapter<Timer>(simpleActivity, recyclerView, diffUtil, onItemClick, onRefresh) {
+    onItemClick: (Stopwatch) -> Unit,
+) : MyRecyclerViewListAdapter<Stopwatch>(simpleActivity, recyclerView, diffUtil, onItemClick, onRefresh) {
 
     companion object {
-        private val diffUtil = object : DiffUtil.ItemCallback<Timer>() {
-            override fun areItemsTheSame(oldItem: Timer, newItem: Timer): Boolean {
+        private val diffUtil = object : DiffUtil.ItemCallback<Stopwatch>() {
+            override fun areItemsTheSame(oldItem: Stopwatch, newItem: Stopwatch): Boolean {
                 return oldItem.id == newItem.id
             }
 
-            override fun areContentsTheSame(oldItem: Timer, newItem: Timer): Boolean {
+            override fun areContentsTheSame(oldItem: Stopwatch, newItem: Stopwatch): Boolean {
                 return oldItem == newItem
             }
         }
@@ -95,34 +92,34 @@ class TimerAdapter(
             getItem(position)
         }
         removeSelectedItems(positions)
-        timersToRemove.forEach(::deleteTimer)
+        timersToRemove.forEach(::deleteLap)
     }
 
-    private fun setupView(view: View, timer: Timer) {
+    private fun setupView(view: View, stopwatch: Stopwatch) {
         ItemTimerBinding.bind(view).apply {
-            val isSelected = selectedKeys.contains(timer.id)
+            val isSelected = selectedKeys.contains(stopwatch.id)
             timerFrame.isSelected = isSelected
 
             timerLabel.setTextColor(textColor)
             timerLabel.setHintTextColor(textColor.adjustAlpha(0.7f))
-            timerLabel.text = timer.label
+            timerLabel.text = stopwatch.label
 
             AutofitHelper.create(timerTime)
             timerTime.setTextColor(textColor)
-            timerTime.text = when (timer.state) {
+            /*timerTime.text = when (stopwatch.state) {
                 is TimerState.Finished -> 0.getFormattedDuration()
-                is TimerState.Idle -> timer.seconds.getFormattedDuration()
-                is TimerState.Paused -> timer.state.tick.getFormattedDuration()
-                is TimerState.Running -> timer.state.tick.getFormattedDuration()
-            }
+                is TimerState.Idle -> stopwatch.seconds.getFormattedDuration()
+                is TimerState.Paused -> stopwatch.state.tick.getFormattedDuration()
+                is TimerState.Running -> stopwatch.state.tick.getFormattedDuration()
+            }*/
 
             timerReset.applyColorFilter(textColor)
             timerReset.setOnClickListener {
-                resetTimer(timer)
+                resetLap(stopwatch)
             }
 
             timerPlayPause.applyColorFilter(textColor)
-            timerPlayPause.setOnClickListener {
+            /*timerPlayPause.setOnClickListener {
                 (activity as SimpleActivity).handleNotificationPermission { granted ->
                     if (granted) {
                         when (val state = timer.state) {
@@ -138,9 +135,9 @@ class TimerAdapter(
                             { activity.openNotificationSettings() })
                     }
                 }
-            }
+            }*/
 
-            val state = timer.state
+            /*val state = stopwatch.state
             val resetPossible = state is TimerState.Running || state is TimerState.Paused || state is TimerState.Finished
             timerReset.beInvisibleIf(!resetPossible)
             val drawableId = if (state is TimerState.Running) {
@@ -148,17 +145,15 @@ class TimerAdapter(
             } else {
                 com.simplemobiletools.commons.R.drawable.ic_play_vector
             }
-            timerPlayPause.setImageDrawable(simpleActivity.resources.getColoredDrawableWithColor(drawableId, textColor))
+            timerPlayPause.setImageDrawable(simpleActivity.resources.getColoredDrawableWithColor(drawableId, textColor))*/
         }
     }
 
-    private fun resetTimer(timer: Timer) {
-        EventBus.getDefault().post(TimerEvent.Reset(timer.id!!))
-        simpleActivity.hideTimerNotification(timer.id!!)
+    private fun resetLap(stopwatch: Stopwatch) {
+        EventBus.getDefault().post(StopwatchEvent.Reset(stopwatch.id!!))
     }
 
-    private fun deleteTimer(timer: Timer) {
-        EventBus.getDefault().post(TimerEvent.Delete(timer.id!!))
-        simpleActivity.hideTimerNotification(timer.id!!)
+    private fun deleteLap(stopwatch: Stopwatch) {
+        EventBus.getDefault().post(StopwatchEvent.Delete(stopwatch.id!!))
     }
 }

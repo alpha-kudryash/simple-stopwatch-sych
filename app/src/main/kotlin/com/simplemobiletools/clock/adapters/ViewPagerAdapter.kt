@@ -4,8 +4,8 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
+import com.simplemobiletools.clock.fragments.LapFragment
 import com.simplemobiletools.clock.fragments.StopwatchFragment
-import com.simplemobiletools.clock.fragments.TimerFragment
 import com.simplemobiletools.clock.helpers.*
 
 class ViewPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
@@ -32,12 +32,12 @@ class ViewPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
 
     private fun getFragment(position: Int) = when (position) {
         0 -> StopwatchFragment()
-        1 -> TimerFragment()
+        1 -> LapFragment()
         else -> throw RuntimeException("Trying to fetch unknown fragment id $position")
     }
 
-    fun updateTimerPosition(timerId: Int) {
-        (fragments[TAB_TIMER] as? TimerFragment)?.updatePosition(timerId)
+    fun updateLapPosition(lapId: Int) {
+        (fragments[TAB_LAP] as? LapFragment)?.updatePosition(lapId)
     }
 
     fun startStopWatch() {

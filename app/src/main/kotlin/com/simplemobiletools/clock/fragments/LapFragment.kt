@@ -8,15 +8,16 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.simplemobiletools.clock.activities.SimpleActivity
-import com.simplemobiletools.clock.adapters.TimerAdapter
+import com.simplemobiletools.clock.adapters.LapAdapter
+import com.simplemobiletools.clock.databinding.FragmentLapBinding
 import com.simplemobiletools.clock.databinding.FragmentTimerBinding
-import com.simplemobiletools.clock.dialogs.EditTimerDialog
 import com.simplemobiletools.clock.extensions.config
-import com.simplemobiletools.clock.extensions.createNewTimer
-import com.simplemobiletools.clock.extensions.timerHelper
+import com.simplemobiletools.clock.extensions.createNewListLap
+import com.simplemobiletools.clock.extensions.stopwatchHelper
 import com.simplemobiletools.clock.helpers.DisabledItemChangeAnimator
+import com.simplemobiletools.clock.models.Stopwatch
+import com.simplemobiletools.clock.models.StopwatchEvent
 import com.simplemobiletools.clock.models.Timer
-import com.simplemobiletools.clock.models.TimerEvent
 import com.simplemobiletools.commons.extensions.getProperBackgroundColor
 import com.simplemobiletools.commons.extensions.getProperTextColor
 import com.simplemobiletools.commons.extensions.hideKeyboard
@@ -26,12 +27,11 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 
-class TimerFragment : Fragment() {
+class LapFragment : Fragment() {
     private val INVALID_POSITION = -1
-    private lateinit var binding: FragmentTimerBinding
-    private lateinit var timerAdapter: TimerAdapter
-    private var timerPositionToScrollTo = INVALID_POSITION
-    private var currentEditAlarmDialog: EditTimerDialog? = null
+    private lateinit var binding: FragmentLapBinding
+    private lateinit var lapAdapter: LapAdapter
+    private var lapPositionToScrollTo = INVALID_POSITION
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,23 +44,23 @@ class TimerFragment : Fragment() {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        binding = FragmentTimerBinding.inflate(inflater, container, false).apply {
-            timersList.itemAnimator = DisabledItemChangeAnimator()
-            timerAdd.setOnClickListener {
+        binding = FragmentLapBinding.inflate(inflater, container, false).apply {
+            lapsList.itemAnimator = DisabledItemChangeAnimator()
+            /*lapAdd.setOnClickListener {
                 activity?.run {
                     hideKeyboard()
-                    openEditTimer(createNewTimer())
+                    //openEditLap(createNewTimer())
                 }
-            }
+            }*/
         }
 
         initOrUpdateAdapter()
-        refreshTimers()
+        refreshLaps()
 
         // the initial timer is created asynchronously at first launch, make sure we show it once created
         if (context?.config?.appRunCount == 1) {
             Handler(Looper.getMainLooper()).postDelayed({
-                refreshTimers()
+                refreshLaps()
             }, 1000)
         }
 
@@ -68,13 +68,13 @@ class TimerFragment : Fragment() {
     }
 
     private fun initOrUpdateAdapter() {
-        if (this::timerAdapter.isInitialized) {
-            timerAdapter.updatePrimaryColor()
-            timerAdapter.updateBackgroundColor(requireContext().getProperBackgroundColor())
-            timerAdapter.updateTextColor(requireContext().getProperTextColor())
+        if (this::lapAdapter.isInitialized) {
+            lapAdapter.updatePrimaryColor()
+            lapAdapter.updateBackgroundColor(requireContext().getProperBackgroundColor())
+            lapAdapter.updateTextColor(requireContext().getProperTextColor())
         } else {
-            timerAdapter = TimerAdapter(requireActivity() as SimpleActivity, binding.timersList, ::refreshTimers, ::openEditTimer)
-            binding.timersList.adapter = timerAdapter
+            lapAdapter = LapAdapter(requireActivity() as SimpleActivity, binding.lapsList, ::refreshLaps, ::openEditStopwatch)
+            binding.lapsList.adapter = lapAdapter
         }
     }
 
@@ -82,19 +82,19 @@ class TimerFragment : Fragment() {
         super.onResume()
         requireContext().updateTextColors(binding.root)
         initOrUpdateAdapter()
-        refreshTimers()
+        refreshLaps()
     }
 
-    private fun refreshTimers(scrollToLatest: Boolean = false) {
-        activity?.timerHelper?.getTimers { timers ->
+    private fun refreshLaps(scrollToLatest: Boolean = false) {
+        activity?.stopwatchHelper?.getLaps { laps ->
             activity?.runOnUiThread {
-                timerAdapter.submitList(timers) {
+                lapAdapter.submitList(laps) {
                     getView()?.post {
-                        if (timerPositionToScrollTo != INVALID_POSITION && timerAdapter.itemCount > timerPositionToScrollTo) {
-                            binding.timersList.scrollToPosition(timerPositionToScrollTo)
-                            timerPositionToScrollTo = INVALID_POSITION
+                        if (lapPositionToScrollTo != INVALID_POSITION && lapAdapter.itemCount > lapPositionToScrollTo) {
+                            binding.lapsList.scrollToPosition(lapPositionToScrollTo)
+                            lapPositionToScrollTo = INVALID_POSITION
                         } else if (scrollToLatest) {
-                            binding.timersList.scrollToPosition(timers.lastIndex)
+                            binding.lapsList.scrollToPosition(laps.lastIndex)
                         }
                     }
                 }
@@ -103,33 +103,29 @@ class TimerFragment : Fragment() {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun onMessageEvent(event: TimerEvent.Refresh) {
-        refreshTimers()
+    fun onMessageEvent(event: StopwatchEvent.Refresh) {
+        refreshLaps()
     }
 
-    fun updateAlarmSound(alarmSound: AlarmSound) {
-        currentEditAlarmDialog?.updateAlarmSound(alarmSound)
-    }
-
-    fun updatePosition(timerId: Int) {
-        activity?.timerHelper?.getTimers { timers ->
-            val position = timers.indexOfFirst { it.id == timerId }
+    fun updatePosition(lapId: Int) {
+        activity?.stopwatchHelper?.getLaps { laps ->
+            val position = laps.indexOfFirst { it.id == lapId }
             if (position != INVALID_POSITION) {
                 activity?.runOnUiThread {
-                    if (timerAdapter.itemCount > position) {
-                        binding.timersList.scrollToPosition(position)
+                    if (lapAdapter.itemCount > position) {
+                        binding.lapsList.scrollToPosition(position)
                     } else {
-                        timerPositionToScrollTo = position
+                        lapPositionToScrollTo = position
                     }
                 }
             }
         }
     }
 
-    private fun openEditTimer(timer: Timer) {
-        currentEditAlarmDialog = EditTimerDialog(activity as SimpleActivity, timer) {
+    private fun openEditStopwatch(stopwatch: Stopwatch) {
+        /*currentEditAlarmDialog = EditTimerDialog(activity as SimpleActivity, timer) {
             currentEditAlarmDialog = null
             refreshTimers()
-        }
+        }*/
     }
 }

@@ -11,7 +11,6 @@ import androidx.fragment.app.Fragment
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.activities.SimpleActivity
 import com.simplemobiletools.clock.adapters.StopwatchAdapter
-import com.simplemobiletools.clock.adapters.TimerAdapter
 import com.simplemobiletools.clock.databinding.FragmentStopwatchBinding
 import com.simplemobiletools.clock.dialogs.EditStopwatchDialog
 import com.simplemobiletools.clock.extensions.*
@@ -27,7 +26,7 @@ import com.simplemobiletools.clock.models.Stopwatch
 
 class StopwatchFragment : Fragment() {
 
-    lateinit var stopwatchAdapter: StopwatchAdapter
+    private lateinit var stopwatchAdapter: StopwatchAdapter
     private lateinit var binding: FragmentStopwatchBinding
     private var currentEditStopwatchDialog: EditStopwatchDialog? = null
 
@@ -265,9 +264,9 @@ class StopwatchFragment : Fragment() {
     }
 
     private fun refreshLaps(scrollToLatest: Boolean = false) {
-        activity?.stopwatchHelper?.getLaps { laps ->
+        /*activity?.stopwatchHelper?.getLaps { laps ->
             activity?.runOnUiThread {
-                timerAdapter.submitList(timers) {
+                stopwatchAdapter.submitList(laps) {
                     getView()?.post {
                         if (timerPositionToScrollTo != INVALID_POSITION && timerAdapter.itemCount > timerPositionToScrollTo) {
                             binding.timersList.scrollToPosition(timerPositionToScrollTo)
@@ -278,6 +277,6 @@ class StopwatchFragment : Fragment() {
                     }
                 }
             }
-        }
+        }*/
     }
 }

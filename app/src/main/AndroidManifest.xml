@@ -60,13 +60,6 @@
         </activity>
 
         <activity
-            android:name=".activities.IntentHandlerActivity"
-            android:configChanges="orientation"
-            android:exported="false"
-            android:launchMode="singleTask"
-            android:windowSoftInputMode="adjustPan" />
-
-        <activity
             android:name=".activities.MainActivity"
             android:configChanges="orientation"
             android:exported="false"
@@ -130,8 +123,6 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Used to notify the user that stopwatch is running" />
         </service>
-
-        <receiver android:name=".receivers.HideTimerReceiver" />
 
         <activity-alias
             android:name=".activities.SplashActivity.Red"
