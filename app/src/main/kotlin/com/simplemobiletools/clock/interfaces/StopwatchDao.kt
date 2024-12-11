@@ -5,15 +5,17 @@ import com.simplemobiletools.clock.models.Stopwatch
 
 @Dao
 interface StopwatchDao {
+    @Insert
+    suspend fun insertStopwatches(laps: List<Stopwatch>)
+
+    @Query("SELECT MAX(stopwatchSetNum) FROM laps")
+    fun getMaxSetNum(): Int?
 
     @Query("SELECT * FROM laps ORDER BY createdAt ASC")
     fun getLaps(): List<Stopwatch>
 
     @Query("SELECT * FROM laps WHERE id=:id")
     fun getLap(id: Int): Stopwatch?
-
-    //@Query("SELECT * FROM laps WHERE seconds=:seconds AND label=:label")
-    //fun findLaps(seconds: Int, label: String): List<Stopwatch>
 
     @Query("SELECT * FROM laps WHERE milliseconds=:milliseconds AND label=:label")
     fun findLaps(milliseconds: Long, label: String): List<Stopwatch>
@@ -23,6 +25,9 @@ interface StopwatchDao {
 
     @Query("DELETE FROM laps WHERE id=:id")
     fun deleteLap(id: Int)
+
+    @Query("DELETE FROM laps WHERE stopwatchSetNum = :number")
+    suspend fun deleteBySetNum(number: Int)
 
     @Delete
     fun deleteLaps(list: List<Stopwatch>)

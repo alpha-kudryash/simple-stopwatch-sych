@@ -90,14 +90,17 @@ fun Context.createNewTimer(): Timer {
 
 fun Context.createNewListLap(laps: ArrayList<Lap>): ArrayList<Stopwatch> {
     val stopwatches = ArrayList<Stopwatch>()
+    val setNum = try { stopwatchDb.getMaxSetNum() ?: 0 }
+    catch (e: Exception) {0}
     laps.forEachIndexed { index, lap ->
-            val stopwatch = Stopwatch(
-            null,
-                lap.totalTime,
-                lap.textTime ?:"",
-                config.stopwatchLabel ?: "",
-                System.currentTimeMillis(),
-                config.stopwatchChannelId,
+        val stopwatch = Stopwatch(
+            0,
+            setNum + 1,
+            lap.totalTime,
+            lap.textTime ?:"",
+            config.stopwatchLabel ?: "",
+            System.currentTimeMillis(),
+            config.stopwatchChannelId
         )
         stopwatches.add(stopwatch)
     }
