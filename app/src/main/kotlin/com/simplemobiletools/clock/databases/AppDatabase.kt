@@ -21,7 +21,7 @@ import java.util.concurrent.Executors
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun TimerDao(): TimerDao
-    abstract fun StopwatchLapDao(): StopwatchLapDao
+    abstract fun StopwatchDao(): StopwatchDao
 
     companion object {
         private var db: AppDatabase? = null
