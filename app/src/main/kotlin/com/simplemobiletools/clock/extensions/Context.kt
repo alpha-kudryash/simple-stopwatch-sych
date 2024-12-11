@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioManager.STREAM_ALARM
+import android.media.RingtoneManager
 import android.net.Uri
 import android.os.PowerManager
 import android.text.SpannableString
@@ -16,14 +17,19 @@ import com.simplemobiletools.clock.activities.ReminderActivity
 import com.simplemobiletools.clock.activities.SplashActivity
 import com.simplemobiletools.clock.databases.AppDatabase
 import com.simplemobiletools.clock.helpers.*
+import com.simplemobiletools.clock.helpers.CurrentStopwatch.laps
 import com.simplemobiletools.clock.interfaces.TimerDao
 import com.simplemobiletools.clock.interfaces.StopwatchDao
 import com.simplemobiletools.clock.models.*
+import com.simplemobiletools.clock.receivers.*
 import com.simplemobiletools.commons.extensions.*
 import com.simplemobiletools.commons.helpers.*
 import java.util.Calendar
 
 val Context.config: Config get() = Config.newInstance(applicationContext)
+
+val Context.timerDb: TimerDao get() = AppDatabase.getInstance(applicationContext).TimerDao()
+val Context.timerHelper: TimerHelper get() = TimerHelper(this)
 
 val Context.stopwatchDb: StopwatchDao get() = AppDatabase.getInstance(applicationContext).StopwatchDao()
 val Context.stopwatchHelper: StopwatchHelper get() = StopwatchHelper(this)
@@ -63,30 +69,48 @@ fun Context.getAllTimeZonesModified(): ArrayList<MyTimeZone> {
 
 fun Context.getModifiedTimeZoneTitle(id: Int) = getAllTimeZonesModified().firstOrNull { it.id == id }?.title ?: getDefaultTimeZoneTitle(id)
 
+fun Context.createNewAlarm(timeInMinutes: Int, weekDays: Int): Alarm {
+    val defaultAlarmSound = getDefaultAlarmSound(RingtoneManager.TYPE_ALARM)
+    return Alarm(0, timeInMinutes, weekDays, false, false, defaultAlarmSound.title, defaultAlarmSound.uri, "")
+}
+
+fun Context.createNewTimer(): Timer {
+    return Timer(
+        null,
+        config.timerSeconds,
+        TimerState.Idle,
+        config.timerVibrate,
+        config.timerSoundUri,
+        config.timerSoundTitle,
+        config.timerLabel ?: "",
+        System.currentTimeMillis(),
+        config.timerChannelId,
+    )
+}
+
 fun Context.createNewListLap(laps: ArrayList<Lap>): ArrayList<Stopwatch> {
     val stopwatches = ArrayList<Stopwatch>()
     val setNum = try { stopwatchDb.getMaxSetNum() ?: 0 }
     catch (e: Exception) {0}
     laps.forEachIndexed { index, lap ->
             val stopwatch = Stopwatch(
-                0,
-                setNum + 1,
+            null,
                 lap.totalTime,
                 lap.textTime ?:"",
                 config.stopwatchLabel ?: "",
                 System.currentTimeMillis(),
-                config.stopwatchChannelId
+                config.stopwatchChannelId,
         )
         stopwatches.add(stopwatch)
     }
     return stopwatches
 }
 
-fun Context.getOpenLapTabIntent(lapId: Int): PendingIntent {
+fun Context.getOpenTimerTabIntent(timerId: Int): PendingIntent {
     val intent = getLaunchIntent() ?: Intent(this, SplashActivity::class.java)
-    intent.putExtra(OPEN_TAB, TAB_LAP)
-    intent.putExtra(LAP_ID, lapId)
-    return PendingIntent.getActivity(this, lapId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    intent.putExtra(OPEN_TAB, TAB_TIMER)
+    intent.putExtra(TIMER_ID, timerId)
+    return PendingIntent.getActivity(this, timerId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 }
 
 fun Context.getOpenStopwatchTabIntent(): PendingIntent {
@@ -109,6 +133,8 @@ fun Context.deleteNotificationChannel(channelId: String) {
         }
     }
 }
+
+fun Context.hideTimerNotification(timerId: Int) = hideNotification(timerId)
 
 fun Context.getFormattedTime(passedSeconds: Int, showSeconds: Boolean, makeAmPmSmaller: Boolean): SpannableString {
     val use24HourFormat = DateFormat.is24HourFormat(this)
@@ -136,11 +162,101 @@ fun Context.formatTo12HourFormat(showSeconds: Boolean, hours: Int, minutes: Int,
 
 fun Context.isScreenOn() = (getSystemService(Context.POWER_SERVICE) as PowerManager).isScreenOn
 
-/*fun Context.getHideTimerPendingIntent(lapId: Int): PendingIntent {
+fun Context.getTimerNotification(timer: Timer, pendingIntent: PendingIntent, addDeleteIntent: Boolean): Notification {
+    var soundUri = timer.soundUri
+    if (soundUri == SILENT) {
+        soundUri = ""
+    } else {
+        grantReadUriPermission(soundUri)
+    }
+
+    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    val channelId = timer.channelId ?: "simple_timer_channel_${soundUri}_${System.currentTimeMillis()}"
+    timerHelper.insertOrUpdateTimer(timer.copy(channelId = channelId))
+
+    if (isOreoPlus()) {
+        try {
+            notificationManager.deleteNotificationChannel(channelId)
+        } catch (e: Exception) {
+        }
+
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setLegacyStreamType(STREAM_ALARM)
+            .build()
+
+        val name = getString(R.string.timer)
+        val importance = NotificationManager.IMPORTANCE_HIGH
+        NotificationChannel(channelId, name, importance).apply {
+            setBypassDnd(true)
+            enableLights(true)
+            lightColor = getProperPrimaryColor()
+            setSound(Uri.parse(soundUri), audioAttributes)
+
+            if (!timer.vibrate) {
+                vibrationPattern = longArrayOf(0L)
+            }
+
+            enableVibration(timer.vibrate)
+            notificationManager.createNotificationChannel(this)
+        }
+    }
+
+    val title = if (timer.label.isEmpty()) {
+        getString(R.string.timer)
+    } else {
+        timer.label
+    }
+
+    val reminderActivityIntent = getReminderActivityIntent()
+    val builder = NotificationCompat.Builder(this)
+        .setContentTitle(title)
+        .setContentText(getString(R.string.time_expired))
+        .setSmallIcon(R.drawable.ic_hourglass_vector)
+        .setContentIntent(pendingIntent)
+        .setPriority(NotificationCompat.PRIORITY_MAX)
+        .setDefaults(Notification.DEFAULT_LIGHTS)
+        .setCategory(Notification.CATEGORY_EVENT)
+        .setAutoCancel(true)
+        .setSound(Uri.parse(soundUri), STREAM_ALARM)
+        .setChannelId(channelId)
+        .addAction(
+            com.simplemobiletools.commons.R.drawable.ic_cross_vector,
+            getString(com.simplemobiletools.commons.R.string.dismiss),
+            if (addDeleteIntent) {
+                reminderActivityIntent
+            } else {
+                getHideTimerPendingIntent(timer.id!!)
+            }
+        )
+
+    if (addDeleteIntent) {
+        builder.setDeleteIntent(reminderActivityIntent)
+    }
+
+    builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+    if (timer.vibrate) {
+        val vibrateArray = LongArray(2) { 500 }
+        builder.setVibrate(vibrateArray)
+    }
+
+    val notification = builder.build()
+    notification.flags = notification.flags or Notification.FLAG_INSISTENT
+    return notification
+}
+
+fun Context.getHideTimerPendingIntent(timerId: Int): PendingIntent {
     val intent = Intent(this, HideTimerReceiver::class.java)
-    intent.putExtra(LAP_ID, timerId)
+    intent.putExtra(TIMER_ID, timerId)
     return PendingIntent.getBroadcast(this, timerId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-}*/
+}
+
+fun Context.getReminderActivityIntent(): PendingIntent {
+    val intent = Intent(this, ReminderActivity::class.java)
+    return PendingIntent.getActivity(this, REMINDER_ACTIVITY_INTENT_ID, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+}
 
 fun Context.firstDayOrder(bitMask: Int): Int {
     if (bitMask == TODAY_BIT) return -2
