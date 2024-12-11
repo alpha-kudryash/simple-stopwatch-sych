@@ -68,11 +68,6 @@ class EditTimerDialog(val activity: SimpleActivity, val timer: Timer, val callba
                 activity.setupDialogStuff(binding.root, this) { alertDialog ->
                     alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                         timer.label = binding.editTimer.value
-                        activity.timerHelper.insertOrUpdateTimer(timer) {
-                            activity.config.timerLastConfig = timer
-                            callback(it)
-                            alertDialog.dismiss()
-                        }
                     }
                 }
             }

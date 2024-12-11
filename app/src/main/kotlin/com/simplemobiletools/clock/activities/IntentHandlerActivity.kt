@@ -78,55 +78,17 @@ class IntentHandlerActivity : SimpleActivity() {
                 newTimer.seconds = length
                 newTimer.oneShot = true
 
-                timerHelper.insertOrUpdateTimer(newTimer) {
-                    config.timerLastConfig = newTimer
-                    newTimer.id = it.toInt()
-                    startTimer(newTimer)
-                }
             }
-        }
-
-        if (hasExtra(AlarmClock.EXTRA_LENGTH)) {
-            timerHelper.findTimers(length, message ?: "") {
-                val existingTimer = it.firstOrNull { it.state is TimerState.Idle }
-
-                // We don't want to accidentally edit existing timer, so allow reuse only when skipping UI
-                if (existingTimer != null
-                    && skipUi
-                    && (existingTimer.state is TimerState.Idle || (existingTimer.state is TimerState.Finished && !existingTimer.oneShot))) {
-                    startTimer(existingTimer)
-                } else {
-                    createAndStartNewTimer()
-                }
-            }
-        } else {
-            createAndStartNewTimer()
         }
     }
 
     private fun Intent.dismissTimer() {
         val uri = data
         if (uri == null) {
-            timerHelper.getTimers {
-                it.filter { it.state == TimerState.Finished }.forEach {
-                    getHideTimerPendingIntent(it.id!!).send()
-                }
-                EventBus.getDefault().post(TimerEvent.Refresh)
-                finish()
-            }
             return
         } else if (uri.scheme == URI_SCHEME) {
             val id = uri.schemeSpecificPart.toIntOrNull()
             if (id != null) {
-                timerHelper.tryGetTimer(id) {
-                    if (it != null) {
-                        getHideTimerPendingIntent(it.id!!).send()
-                        EventBus.getDefault().post(TimerEvent.Refresh)
-                        finish()
-                    } else {
-                        finish()
-                    }
-                }
                 return
             }
         }
@@ -150,20 +112,12 @@ class IntentHandlerActivity : SimpleActivity() {
             }
 
             if (granted) {
-                timerHelper.insertOrUpdateTimer(newTimer) {
-                    notifyAndStartTimer()
-                    finish()
-                }
             } else {
                 PermissionRequiredDialog(
                     this,
                     com.simplemobiletools.commons.R.string.allow_notifications_reminders,
                     positiveActionCallback = {
                         openNotificationSettings()
-                        timerHelper.insertOrUpdateTimer(newTimer) {
-                            notifyAndStartTimer()
-                            finish()
-                        }
                     },
                     negativeActionCallback = {
                         finish()

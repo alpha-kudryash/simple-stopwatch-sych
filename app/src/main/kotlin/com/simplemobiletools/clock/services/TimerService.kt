@@ -14,7 +14,6 @@ import androidx.core.content.ContextCompat
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.extensions.getFormattedDuration
 import com.simplemobiletools.clock.extensions.getOpenTimerTabIntent
-import com.simplemobiletools.clock.extensions.timerHelper
 import com.simplemobiletools.clock.helpers.INVALID_TIMER_ID
 import com.simplemobiletools.clock.helpers.TIMER_RUNNING_NOTIF_ID
 import com.simplemobiletools.clock.models.TimerEvent
@@ -39,33 +38,8 @@ class TimerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         isStopping = false
-        updateNotification()
         startForeground(TIMER_RUNNING_NOTIF_ID, notification(getString(R.string.app_name), getString(R.string.timers_notification_msg), INVALID_TIMER_ID))
         return START_NOT_STICKY
-    }
-
-    private fun updateNotification() {
-        timerHelper.getTimers { timers ->
-            val runningTimers = timers.filter { it.state is TimerState.Running }
-            if (runningTimers.isNotEmpty()) {
-                val firstTimer = runningTimers.first()
-                val formattedDuration = (firstTimer.state as TimerState.Running).tick.getFormattedDuration()
-                val contextText = when {
-                    firstTimer.label.isNotEmpty() -> getString(R.string.timer_single_notification_label_msg, firstTimer.label)
-                    else -> resources.getQuantityString(R.plurals.timer_notification_msg, runningTimers.size, runningTimers.size)
-                }
-
-                Handler(Looper.getMainLooper()).post {
-                    try {
-                        startForeground(TIMER_RUNNING_NOTIF_ID, notification(formattedDuration, contextText, firstTimer.id!!))
-                    } catch (e: Exception) {
-                        showErrorToast(e)
-                    }
-                }
-            } else {
-                stopService()
-            }
-        }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -76,7 +50,6 @@ class TimerService : Service() {
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onMessageEvent(event: TimerEvent.Refresh) {
         if (!isStopping) {
-            updateNotification()
         }
     }
 

@@ -29,7 +29,6 @@ import java.util.Calendar
 val Context.config: Config get() = Config.newInstance(applicationContext)
 
 val Context.timerDb: TimerDao get() = AppDatabase.getInstance(applicationContext).TimerDao()
-val Context.timerHelper: TimerHelper get() = TimerHelper(this)
 
 val Context.stopwatchDb: StopwatchDao get() = AppDatabase.getInstance(applicationContext).StopwatchDao()
 val Context.stopwatchHelper: StopwatchHelper get() = StopwatchHelper(this)
@@ -173,7 +172,6 @@ fun Context.getTimerNotification(timer: Timer, pendingIntent: PendingIntent, add
 
     val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val channelId = timer.channelId ?: "simple_timer_channel_${soundUri}_${System.currentTimeMillis()}"
-    timerHelper.insertOrUpdateTimer(timer.copy(channelId = channelId))
 
     if (isOreoPlus()) {
         try {

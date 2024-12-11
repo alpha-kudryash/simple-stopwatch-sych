@@ -13,7 +13,6 @@ import com.simplemobiletools.clock.databinding.FragmentTimerBinding
 import com.simplemobiletools.clock.dialogs.EditTimerDialog
 import com.simplemobiletools.clock.extensions.config
 import com.simplemobiletools.clock.extensions.createNewTimer
-import com.simplemobiletools.clock.extensions.timerHelper
 import com.simplemobiletools.clock.helpers.DisabledItemChangeAnimator
 import com.simplemobiletools.clock.models.Timer
 import com.simplemobiletools.clock.models.TimerEvent
@@ -86,20 +85,6 @@ class TimerFragment : Fragment() {
     }
 
     private fun refreshTimers(scrollToLatest: Boolean = false) {
-        activity?.timerHelper?.getTimers { timers ->
-            activity?.runOnUiThread {
-                timerAdapter.submitList(timers) {
-                    getView()?.post {
-                        if (timerPositionToScrollTo != INVALID_POSITION && timerAdapter.itemCount > timerPositionToScrollTo) {
-                            binding.timersList.scrollToPosition(timerPositionToScrollTo)
-                            timerPositionToScrollTo = INVALID_POSITION
-                        } else if (scrollToLatest) {
-                            binding.timersList.scrollToPosition(timers.lastIndex)
-                        }
-                    }
-                }
-            }
-        }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -112,18 +97,6 @@ class TimerFragment : Fragment() {
     }
 
     fun updatePosition(timerId: Int) {
-        activity?.timerHelper?.getTimers { timers ->
-            val position = timers.indexOfFirst { it.id == timerId }
-            if (position != INVALID_POSITION) {
-                activity?.runOnUiThread {
-                    if (timerAdapter.itemCount > position) {
-                        binding.timersList.scrollToPosition(position)
-                    } else {
-                        timerPositionToScrollTo = position
-                    }
-                }
-            }
-        }
     }
 
     private fun openEditTimer(timer: Timer) {
