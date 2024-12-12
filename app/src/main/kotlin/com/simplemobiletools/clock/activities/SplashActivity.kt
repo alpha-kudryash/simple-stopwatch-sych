@@ -22,6 +22,13 @@ class SplashActivity : BaseSplashActivity() {
                 }
             }
 
+            intent?.action == LAP_TOGGLE_ACTION -> {
+                Intent(this, MainActivity::class.java).apply {
+                    putExtra(OPEN_TAB, TAB_LAP)
+                    startActivity(this)
+                }
+            }
+
             intent.extras?.containsKey(OPEN_TAB) == true -> {
                 Intent(this, MainActivity::class.java).apply {
                     putExtra(OPEN_TAB, intent.getIntExtra(OPEN_TAB, TAB_STOPWATCH))
