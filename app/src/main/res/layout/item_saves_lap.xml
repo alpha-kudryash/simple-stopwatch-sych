@@ -23,10 +23,10 @@
             android:layout_height="wrap_content"
             android:includeFontPadding="false"
             android:maxLines="1"
-            android:textSize="@dimen/lap_time_size"
+            android:textSize="25sp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:text="00:00:00" />
+            tools:text="00:00:00:00" />
 
         <com.simplemobiletools.commons.views.MyTextView
             android:id="@+id/lap_label"

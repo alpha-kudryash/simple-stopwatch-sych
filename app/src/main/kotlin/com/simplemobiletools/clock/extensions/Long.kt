@@ -42,8 +42,34 @@ fun Long.timestampFormat(format: String = "dd. MM. yyyy"): String {
     return DateFormat.format(format, calendar).toString()
 }
 
+/*fun Long.getFormattedDuration(seconds: Int, milliseconds: Long, forceShowHours: Boolean): String {
+    val hours = seconds / 3600
+    val minutes = (seconds % 3600) / 60
+    val remainingSeconds = seconds % 60
+    val millis = milliseconds / 10
+
+    return if (forceShowHours || hours > 0) {
+        String.format("%02d:%02d:%02d:%02d", hours, minutes, remainingSeconds, millis)
+    } else {
+        String.format("%02d:%02d:%02d", minutes, remainingSeconds, millis)
+    }
+    //return this.div(1000F).roundToInt().getFormattedDuration(forceShowHours)
+}
+
 fun Long.getFormattedDuration(forceShowHours: Boolean = false): String {
-    return this.div(1000F).roundToInt().getFormattedDuration(forceShowHours)
+    val seconds = this / 1000
+    val milliseconds = this % 1000
+    return seconds.getFormattedDuration(seconds, milliseconds, forceShowHours)
+    //return this.div(1000F).roundToInt().getFormattedDuration(forceShowHours)
+}
+*/
+fun Long.getFormattedDuration(): String {
+    val hours = this / 3600000
+    val minutes = (this % 3600000) / 60000
+    val seconds = (this % 60000) / 1000
+    val milliseconds = this % 1000
+
+    return String.format("%02d:%02d:%02d:%02d", hours, minutes, seconds, milliseconds / 10)
 }
 
 val Long.secondsToMillis get() = TimeUnit.SECONDS.toMillis(this)

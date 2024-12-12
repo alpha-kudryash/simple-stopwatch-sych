@@ -13,6 +13,7 @@ import com.simplemobiletools.clock.databinding.FragmentTimerBinding
 import com.simplemobiletools.clock.dialogs.EditTimerDialog
 import com.simplemobiletools.clock.extensions.config
 import com.simplemobiletools.clock.extensions.createNewTimer
+import com.simplemobiletools.clock.extensions.stopwatchHelper
 import com.simplemobiletools.clock.helpers.DisabledItemChangeAnimator
 import com.simplemobiletools.clock.models.Timer
 import com.simplemobiletools.clock.models.TimerEvent
@@ -85,6 +86,7 @@ class TimerFragment : Fragment() {
     }
 
     private fun refreshTimers(scrollToLatest: Boolean = false) {
+
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

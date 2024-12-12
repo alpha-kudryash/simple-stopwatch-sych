@@ -14,6 +14,7 @@ import com.facebook.stetho.Stetho
 import com.simplemobiletools.clock.extensions.*
 import com.simplemobiletools.clock.helpers.CurrentStopwatch
 import com.simplemobiletools.clock.helpers.CurrentStopwatch.State
+import com.simplemobiletools.clock.models.StopwatchEvent
 import com.simplemobiletools.clock.models.TimerEvent
 import com.simplemobiletools.clock.models.TimerState
 import com.simplemobiletools.clock.services.StopwatchStopService
@@ -65,6 +66,13 @@ class App : Application(), LifecycleObserver {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onMessageEvent(event: TimerEvent.Delete) {
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onMessageEvent(event: StopwatchEvent.Delete) {
+        stopwatchHelper.deleteLap(event.lapId) {
+            EventBus.getDefault().post(StopwatchEvent.Refresh)
+        }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

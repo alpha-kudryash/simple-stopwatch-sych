@@ -1,8 +1,6 @@
 package com.simplemobiletools.clock.fragments
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,14 +8,13 @@ import androidx.fragment.app.Fragment
 import com.simplemobiletools.clock.activities.SimpleActivity
 import com.simplemobiletools.clock.adapters.LapAdapter
 import com.simplemobiletools.clock.databinding.FragmentLapBinding
-import com.simplemobiletools.clock.databinding.FragmentTimerBinding
 import com.simplemobiletools.clock.dialogs.EditTimerDialog
-import com.simplemobiletools.clock.extensions.config
-import com.simplemobiletools.clock.extensions.createNewTimer
+import com.simplemobiletools.clock.extensions.stopwatchHelper
+import com.simplemobiletools.clock.helpers.CurrentStopwatch
 import com.simplemobiletools.clock.helpers.DisabledItemChangeAnimator
 import com.simplemobiletools.clock.models.Stopwatch
-import com.simplemobiletools.clock.models.Timer
 import com.simplemobiletools.clock.models.TimerEvent
+import com.simplemobiletools.commons.extensions.beVisibleIf
 import com.simplemobiletools.commons.extensions.getProperBackgroundColor
 import com.simplemobiletools.commons.extensions.getProperTextColor
 import com.simplemobiletools.commons.extensions.hideKeyboard
@@ -56,7 +53,7 @@ class LapFragment : Fragment() {
         }
 
         initOrUpdateAdapter()
-        refreshTimers()
+        refreshLaps()
 
         return binding.root
     }
@@ -67,7 +64,7 @@ class LapFragment : Fragment() {
             lapAdapter.updateBackgroundColor(requireContext().getProperBackgroundColor())
             lapAdapter.updateTextColor(requireContext().getProperTextColor())
         } else {
-            lapAdapter = LapAdapter(requireActivity() as SimpleActivity, binding.lapsList, ::refreshTimers, ::openEditTimer)
+            lapAdapter = LapAdapter(requireActivity() as SimpleActivity, ArrayList(), binding.lapsList, ::refreshLaps, ::openEditTimer)
             binding.lapsList.adapter = lapAdapter
         }
     }
@@ -76,15 +73,37 @@ class LapFragment : Fragment() {
         super.onResume()
         requireContext().updateTextColors(binding.root)
         initOrUpdateAdapter()
-        refreshTimers()
+        refreshLaps()
     }
 
-    private fun refreshTimers(scrollToLatest: Boolean = false) {
+    private fun refreshLaps(scrollToLatest: Boolean = false) {
+        activity?.stopwatchHelper?.getLaps { laps ->
+            activity?.runOnUiThread {
+                lapAdapter.submitList(laps) {
+                    lapAdapter.updateItems(laps)
+                    getView()?.post {
+                        if (lapPositionToScrollTo != INVALID_POSITION && lapAdapter.itemCount > lapPositionToScrollTo) {
+                            binding.lapsList.scrollToPosition(lapPositionToScrollTo)
+                            lapPositionToScrollTo = INVALID_POSITION
+                        } else if (scrollToLatest) {
+                            binding.lapsList.scrollToPosition(laps.lastIndex)
+                        }
+                    }
+                }
+            }
+        }
+        /*lapAdapter.apply {
+            updatePrimaryColor()
+            updateBackgroundColor(requireContext().getProperBackgroundColor())
+            updateTextColor(requireContext().getProperTextColor())
+            updateItems(activity?.stopwatchHelper?.getLaps)
+            binding.stopwatchSave.beVisibleIf(CurrentStopwatch.laps.isNotEmpty())
+        }*/
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onMessageEvent(event: TimerEvent.Refresh) {
-        refreshTimers()
+        refreshLaps()
     }
 
     fun updateAlarmSound(alarmSound: AlarmSound) {

@@ -7,23 +7,18 @@ import androidx.recyclerview.widget.DiffUtil
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.activities.SimpleActivity
 import com.simplemobiletools.clock.databinding.ItemSavesLapBinding
-import com.simplemobiletools.clock.databinding.ItemTimerBinding
 import com.simplemobiletools.clock.extensions.getFormattedDuration
-import com.simplemobiletools.clock.extensions.hideTimerNotification
-import com.simplemobiletools.clock.extensions.secondsToMillis
 import com.simplemobiletools.clock.models.Stopwatch
-import com.simplemobiletools.clock.models.Timer
+import com.simplemobiletools.clock.models.StopwatchEvent
 import com.simplemobiletools.clock.models.TimerEvent
-import com.simplemobiletools.clock.models.TimerState
 import com.simplemobiletools.commons.adapters.MyRecyclerViewListAdapter
-import com.simplemobiletools.commons.dialogs.PermissionRequiredDialog
 import com.simplemobiletools.commons.extensions.*
 import com.simplemobiletools.commons.views.MyRecyclerView
 import me.grantland.widget.AutofitHelper
 import org.greenrobot.eventbus.EventBus
 
 class LapAdapter(
-    private val simpleActivity: SimpleActivity,
+    private val simpleActivity: SimpleActivity, var laps: List<Stopwatch>,
     recyclerView: MyRecyclerView,
     onRefresh: () -> Unit,
     onItemClick: (Stopwatch) -> Unit,
@@ -93,11 +88,11 @@ class LapAdapter(
 
     private fun deleteItems() {
         val positions = getSelectedItemPositions()
-        val timersToRemove = positions.map { position ->
+        val lapsToRemove = positions.map { position ->
             getItem(position)
         }
         removeSelectedItems(positions)
-        timersToRemove.forEach(::deleteTimer)
+        lapsToRemove.forEach(::deleteLap)
     }
 
     private fun setupView(view: View, stopwatch: Stopwatch) {
@@ -107,15 +102,23 @@ class LapAdapter(
 
             lapLabel.setTextColor(textColor)
             lapLabel.setHintTextColor(textColor.adjustAlpha(0.7f))
-            lapLabel.text = stopwatch.label
+            lapLabel.text = "123" //stopwatch.label
 
             AutofitHelper.create(lapTime)
             lapTime.setTextColor(textColor)
-            lapTime.text = stopwatch.text
+            lapTime.text = stopwatch.milliseconds.getFormattedDuration()
         }
     }
 
-    private fun deleteTimer(stopwatch: Stopwatch) {
-        EventBus.getDefault().post(TimerEvent.Delete(stopwatch.id!!))
+    private fun deleteLap(lap: Stopwatch) {
+        EventBus.getDefault().post(StopwatchEvent.Delete(lap.id!!))
+    }
+
+    fun updateItems(newItems: List<Stopwatch>) {
+        //lastLapId = 0
+        submitList(newItems)
+        //laps.sort()
+        //notifyDataSetChanged()
+        finishActMode()
     }
 }
