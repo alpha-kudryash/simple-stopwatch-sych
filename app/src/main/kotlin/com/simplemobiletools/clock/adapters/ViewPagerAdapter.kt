@@ -45,4 +45,8 @@ class ViewPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
     fun startStopWatch() {
         (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.startLapStopwatch()
     }
+
+    fun refreshLapFragment() {
+        (fragments[TAB_LAP] as? LapFragment)?.updateLaps()
+    }
 }

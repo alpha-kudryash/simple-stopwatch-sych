@@ -13,6 +13,7 @@ import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.adapters.ViewPagerAdapter
 import com.simplemobiletools.clock.databinding.ActivityMainBinding
 import com.simplemobiletools.clock.extensions.*
+import com.simplemobiletools.clock.fragments.LapFragment
 import com.simplemobiletools.clock.helpers.*
 import com.simplemobiletools.commons.databinding.BottomTablayoutItemBinding
 import com.simplemobiletools.commons.extensions.*
@@ -163,6 +164,7 @@ class MainActivity : SimpleActivity() {
         binding.viewPager.onPageChangeListener {
             binding.mainTabsHolder.getTabAt(it)?.select()
             refreshMenuItems()
+            viewPagerAdapter.refreshLapFragment()
         }
 
         val tabToOpen = intent.getIntExtra(OPEN_TAB, config.lastUsedViewPagerPage)
@@ -208,6 +210,8 @@ class MainActivity : SimpleActivity() {
                 binding.viewPager.currentItem = it.position
                 updateBottomTabItemColors(it.customView, true, getSelectedTabDrawableIds()[it.position])
             }
+
+
         )
     }
 

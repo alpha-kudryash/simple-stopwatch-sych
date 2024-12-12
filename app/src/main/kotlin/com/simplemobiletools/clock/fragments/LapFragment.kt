@@ -106,11 +106,11 @@ class LapFragment : Fragment() {
         refreshLaps()
     }
 
-    fun updateAlarmSound(alarmSound: AlarmSound) {
-        currentEditAlarmDialog?.updateAlarmSound(alarmSound)
+    fun updatePosition(timerId: Int) {
     }
 
-    fun updatePosition(timerId: Int) {
+    fun updateLaps() {
+        refreshLaps()
     }
 
     private fun openEditTimer(stopwatch: Stopwatch) {

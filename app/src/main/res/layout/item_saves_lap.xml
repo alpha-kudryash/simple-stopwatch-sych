@@ -28,6 +28,19 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="00:00:00:00" />
 
+        <TextView
+            android:id="@+id/lap_text"
+            android:layout_width="243dp"
+            android:layout_height="49dp"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:textSize="25sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.448"
+            app:layout_constraintStart_toEndOf="@id/lap_time"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Additional" />
+
         <com.simplemobiletools.commons.views.MyTextView
             android:id="@+id/lap_label"
             android:layout_width="0dp"

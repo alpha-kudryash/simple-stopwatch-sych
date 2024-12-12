@@ -11,24 +11,23 @@ import androidx.fragment.app.Fragment
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.activities.SimpleActivity
 import com.simplemobiletools.clock.adapters.StopwatchAdapter
+import com.simplemobiletools.clock.adapters.LapAdapter
 import com.simplemobiletools.clock.databinding.FragmentStopwatchBinding
 import com.simplemobiletools.clock.dialogs.EditStopwatchDialog
 import com.simplemobiletools.clock.extensions.*
-import com.simplemobiletools.clock.helpers.SORT_BY_LAP
-import com.simplemobiletools.clock.helpers.SORT_BY_LAP_TIME
-import com.simplemobiletools.clock.helpers.SORT_BY_TOTAL_TIME
-import com.simplemobiletools.clock.helpers.CurrentStopwatch
 import com.simplemobiletools.clock.models.Lap
 import com.simplemobiletools.commons.dialogs.PermissionRequiredDialog
 import com.simplemobiletools.commons.extensions.*
 import com.simplemobiletools.commons.helpers.SORT_DESCENDING
 import com.simplemobiletools.clock.models.Stopwatch
+import com.simplemobiletools.clock.helpers.*
 
 class StopwatchFragment : Fragment() {
 
     private lateinit var stopwatchAdapter: StopwatchAdapter
     private lateinit var binding: FragmentStopwatchBinding
     private var currentEditStopwatchDialog: EditStopwatchDialog? = null
+    private lateinit var lapAdapter: LapAdapter
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val sorting = requireContext().config.stopwatchLapsSort
@@ -72,6 +71,22 @@ class StopwatchFragment : Fragment() {
             stopwatchList.adapter = stopwatchAdapter
         }
 
+       /* if (this::lapAdapter.isInitialized) {
+            lapAdapter.updatePrimaryColor()
+            lapAdapter.updateBackgroundColor(requireContext().getProperBackgroundColor())
+            lapAdapter.updateTextColor(requireContext().getProperTextColor())
+        } else {
+            lapAdapter = LapAdapter(requireActivity() as SimpleActivity, ArrayList(), binding.lapsList, ::refreshLaps, ::openEditTimer)
+            binding.lapsList.adapter = lapAdapter
+        }
+        lapAdapter = LapAdapter(
+            requireActivity() as SimpleActivity,
+            emptyList(),
+            binding.lapsList,  // Убедитесь, что это правильный ID
+            onRefresh = { refreshLapList() },
+            onItemClick = { stopwatch -> /* обработка клика */ }
+        )
+        initOrUpdateAdapter()*/
         updateSortingIndicators(sorting)
         return binding.root
     }
@@ -85,6 +100,17 @@ class StopwatchFragment : Fragment() {
             //stopwatchAdapter = TimerAdapter(requireActivity() as SimpleActivity, binding.timersList, ::refreshTimers, ::openEditTimer)
             //binding.timersList.adapter = stopwatchAdapter
         }
+/*
+        if (!::lapAdapter.isInitialized) {
+            lapAdapter = LapAdapter(
+                requireActivity() as SimpleActivity,
+                emptyList(), // Начальный пустой список
+                binding.lapsRecyclerView,
+                onRefresh = { refreshLapList() }, // Обновление списка по необходимости
+                onItemClick = { stopwatch -> /* обработка клика по элементу */ }
+            )
+            binding.lapsRecyclerView.adapter = lapAdapter
+        }*/
     }
 
     override fun onResume() {
@@ -103,7 +129,7 @@ class StopwatchFragment : Fragment() {
             startLapStopwatch()
         }
 
-        refreshLaps()
+        //refreshLaps()
     }
 
     override fun onPause() {
@@ -241,7 +267,7 @@ class StopwatchFragment : Fragment() {
         }
     }
 
-    private fun openEditListLap(stopwatchList: ArrayList<Stopwatch>) {
+    private fun openEditListLap(stopwatchList: List<Stopwatch>) {
         currentEditStopwatchDialog = EditStopwatchDialog(activity as SimpleActivity, stopwatchList) {
             currentEditStopwatchDialog = null
         }
@@ -261,22 +287,5 @@ class StopwatchFragment : Fragment() {
                 binding.stopwatchPauseReset.beVisibleIf(state != CurrentStopwatch.State.RESETED)
             }
         }
-    }
-
-    private fun refreshLaps(scrollToLatest: Boolean = false) {
-        /*activity?.stopwatchHelper?.getLaps { laps ->
-            activity?.runOnUiThread {
-                stopwatchAdapter.submitList(laps) {
-                    getView()?.post {
-                        if (timerPositionToScrollTo != INVALID_POSITION && timerAdapter.itemCount > timerPositionToScrollTo) {
-                            binding.timersList.scrollToPosition(timerPositionToScrollTo)
-                            timerPositionToScrollTo = INVALID_POSITION
-                        } else if (scrollToLatest) {
-                            binding.timersList.scrollToPosition(timers.lastIndex)
-                        }
-                    }
-                }
-            }
-        }*/
     }
 }

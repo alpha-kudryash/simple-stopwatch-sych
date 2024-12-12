@@ -91,8 +91,11 @@ class LapAdapter(
         val lapsToRemove = positions.map { position ->
             getItem(position)
         }
+        val newLapsList = laps.filterNot { lapsToRemove.contains(it) }
+        updateItems(newLapsList)
         removeSelectedItems(positions)
         lapsToRemove.forEach(::deleteLap)
+
     }
 
     private fun setupView(view: View, stopwatch: Stopwatch) {
@@ -103,6 +106,9 @@ class LapAdapter(
             lapLabel.setTextColor(textColor)
             lapLabel.setHintTextColor(textColor.adjustAlpha(0.7f))
             lapLabel.text = "123" //stopwatch.label
+
+            lapText.setTextColor(textColor)
+            lapText.text = "text" //stopwatch.text
 
             AutofitHelper.create(lapTime)
             lapTime.setTextColor(textColor)
