@@ -12,10 +12,10 @@ object CurrentStopwatch {
 
     private var updateTimer = Timer()
     private var uptimeAtStart = 0L
-    private var totalTicks = 0
-    private var currentTicks = 0    // ticks that reset at pause
-    private var lapTicks = 0
+    private var totalTicks = 0L
+    private var lapTicks = 0L
     private var currentLap = 1
+    var currentSetId = 0
     val laps = ArrayList<Lap>()
     var state = State.RESETED
         private set(value) {
@@ -29,26 +29,24 @@ object CurrentStopwatch {
     fun reset() {
         updateTimer.cancel()
         state = State.RESETED
-        currentTicks = 0
-        totalTicks = 0
         currentLap = 1
+        totalTicks = 0
         lapTicks = 0
         laps.clear()
     }
 
     fun lap() {
         if (laps.isEmpty()) {
-            val lap = Lap(currentLap++, lapTicks * UPDATE_INTERVAL, totalTicks * UPDATE_INTERVAL, "")
+            val lap = Lap(currentLap++, lapTicks, totalTicks, "")
             laps.add(0, lap)
             lapTicks = 0
         } else {
             laps.first().apply {
-                lapTime = lapTicks * UPDATE_INTERVAL
-                totalTime = totalTicks * UPDATE_INTERVAL
+                lapTime = lapTicks
+                totalTime = totalTicks
             }
         }
-
-        val lap = Lap(currentLap++, lapTicks * UPDATE_INTERVAL, totalTicks * UPDATE_INTERVAL, "")
+        val lap = Lap(currentLap++, totalTicks, totalTicks, "")
         laps.add(0, lap)
         lapTicks = 0
     }
@@ -75,18 +73,11 @@ object CurrentStopwatch {
 
     fun pause() {
         state = State.PAUSED
-        val prevSessionsMS = (totalTicks - currentTicks) * UPDATE_INTERVAL
-        val totalDuration = SystemClock.uptimeMillis() - uptimeAtStart + prevSessionsMS
+        val totalDuration = SystemClock.uptimeMillis() - uptimeAtStart + totalTicks
         updateTimer.cancel()
-        currentTicks = 0
-        totalTicks--
         for (listener in updateListeners) {
-            listener.onUpdate(totalDuration, -1, true)
+            listener.onUpdate(totalDuration, -1)
         }
-    }
-
-    fun save() {
-        //stopwatchHelper
     }
 
     /**
@@ -98,9 +89,8 @@ object CurrentStopwatch {
     fun addUpdateListener(updateListener: UpdateListener) {
         updateListeners.add(updateListener)
         updateListener.onUpdate(
-            totalTicks * UPDATE_INTERVAL,
-            lapTicks * UPDATE_INTERVAL,
-            state != State.RESETED
+            totalTicks,
+            lapTicks,
         )
         updateListener.onStateChanged(state)
     }
@@ -118,18 +108,14 @@ object CurrentStopwatch {
             scheduleAtFixedRate(object : TimerTask() {
                 override fun run() {
                     if (state == State.RUNNING) {
-                        if (totalTicks % 10 == 0) {
-                            for (listener in updateListeners) {
-                                listener.onUpdate(
-                                    totalTicks * UPDATE_INTERVAL,
-                                    lapTicks * UPDATE_INTERVAL,
-                                    false
-                                )
-                            }
+                        for (listener in updateListeners) {
+                            listener.onUpdate(
+                                totalTicks,
+                                lapTicks
+                            )
                         }
-                        totalTicks++
-                        currentTicks++
-                        lapTicks++
+                        totalTicks += UPDATE_INTERVAL
+                        lapTicks += UPDATE_INTERVAL
                     }
                 }
             }, 0, UPDATE_INTERVAL)
@@ -143,7 +129,7 @@ object CurrentStopwatch {
     }
 
     interface UpdateListener {
-        fun onUpdate(totalTime: Long, lapTime: Long, useLongerMSFormat: Boolean)
+        fun onUpdate(totalTime: Long, lapTime: Long)
         fun onStateChanged(state: State)
     }
 }

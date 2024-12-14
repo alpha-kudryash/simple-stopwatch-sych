@@ -14,8 +14,23 @@ class StopwatchHelper(val context: Context) {
         }
     }
 
+    fun getMaxSetIdStopwatch(callback: (num: Int) -> Unit) {
+        ensureBackgroundThread {
+            val num = stopwatchDao.getMaxSetNum() ?: 0
+            callback.invoke(num)
+        }
+    }
+
+    fun getLastSetIdStopwatch(callback: (num: Int) -> Unit) {
+        ensureBackgroundThread {
+            val lastSetNum = stopwatchDao.getLastSetNum() ?: 0
+            callback.invoke(lastSetNum)
+        }
+    }
+
     fun insertOrUpdateStopwatch(stopwatchList: List<Stopwatch>, callback: (ids: List<Long>) -> Unit = {}) {
         ensureBackgroundThread {
+            stopwatchDao.deleteSet(stopwatchList[0].stopwatchSetNum)
             val ids = stopwatchDao.insertOrUpdateStopwatch(stopwatchList)
             callback.invoke(ids)
         }
@@ -24,6 +39,13 @@ class StopwatchHelper(val context: Context) {
     fun deleteLap(id: Int, callback: () -> Unit = {}) {
         ensureBackgroundThread {
             stopwatchDao.deleteLap(id)
+            callback.invoke()
+        }
+    }
+
+    fun deleteSet(setId: Int, callback: () -> Unit = {}) {
+        ensureBackgroundThread {
+            stopwatchDao.deleteSet(setId)
             callback.invoke()
         }
     }

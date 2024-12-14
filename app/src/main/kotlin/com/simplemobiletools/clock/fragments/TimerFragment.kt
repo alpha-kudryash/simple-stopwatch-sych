@@ -86,7 +86,7 @@ class TimerFragment : Fragment() {
     }
 
     private fun refreshTimers(scrollToLatest: Boolean = false) {
-
+       // timerPositionToScrollTo =
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

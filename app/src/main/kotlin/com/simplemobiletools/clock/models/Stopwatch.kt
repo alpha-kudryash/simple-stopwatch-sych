@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
 @Keep
 data class Stopwatch(
     @PrimaryKey(autoGenerate = true) var id: Int = 0,
-    val stopwatchSetNum: Int,
+    var stopwatchSetNum: Int,
     var milliseconds: Long,
     var text: String,
     var label: String,

@@ -137,9 +137,9 @@ class MainActivity : SimpleActivity() {
         if (intent.extras?.containsKey(OPEN_TAB) == true) {
             val tabToOpen = intent.getIntExtra(OPEN_TAB, TAB_STOPWATCH)
             binding.viewPager.setCurrentItem(tabToOpen, false)
-            if (tabToOpen == TAB_TIMER) {
-                val timerId = intent.getIntExtra(TIMER_ID, INVALID_TIMER_ID)
-                (binding.viewPager.adapter as ViewPagerAdapter).updateTimerPosition(timerId)
+            if (tabToOpen == TAB_LAP) {
+                //val timerId = intent.getIntExtra(TIMER_ID, INVALID_TIMER_ID)
+                (binding.viewPager.adapter as ViewPagerAdapter).updateLapPosition()
             }
             if (tabToOpen == TAB_STOPWATCH) {
                 if (intent.getBooleanExtra(TOGGLE_STOPWATCH, false)) {
@@ -165,13 +165,14 @@ class MainActivity : SimpleActivity() {
             binding.mainTabsHolder.getTabAt(it)?.select()
             refreshMenuItems()
             viewPagerAdapter.refreshLapFragment()
+            viewPagerAdapter.updateLapPosition()
         }
 
         val tabToOpen = intent.getIntExtra(OPEN_TAB, config.lastUsedViewPagerPage)
         intent.removeExtra(OPEN_TAB)
-        if (tabToOpen == TAB_TIMER) {
+        if (tabToOpen == TAB_LAP) {
             val timerId = intent.getIntExtra(TIMER_ID, INVALID_TIMER_ID)
-            viewPagerAdapter.updateTimerPosition(timerId)
+            viewPagerAdapter.updateLapPosition()
         }
 
         if (tabToOpen == TAB_STOPWATCH) {

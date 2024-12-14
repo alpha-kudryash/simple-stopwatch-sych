@@ -87,14 +87,13 @@ fun Context.createNewTimer(): Timer {
     )
 }
 
-fun Context.createNewListLap(laps: ArrayList<Lap>): ArrayList<Stopwatch> {
+fun Context.createNewListLap(laps: ArrayList<Lap>, id: Int): ArrayList<Stopwatch> {
     val stopwatches = ArrayList<Stopwatch>()
-    val setNum = try { stopwatchDb.getMaxSetNum() ?: 0 }
-    catch (e: Exception) {0}
-    laps.forEachIndexed { index, lap ->
+    //catch (e: Exception) {0}
+    laps.dropLast(1).forEachIndexed { index, lap ->
         val stopwatch = Stopwatch(
             0,
-            setNum + 1,
+            id,
             lap.totalTime,
             lap.textTime ?:"",
             config.stopwatchLabel ?: "",

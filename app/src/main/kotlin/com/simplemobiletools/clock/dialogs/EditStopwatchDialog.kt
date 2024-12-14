@@ -24,7 +24,10 @@ class EditStopwatchDialog(val activity: SimpleActivity, val stopwatchList: List<
                 activity.setupDialogStuff(binding.root, this) { alertDialog ->
                     alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                         stopwatchList.forEach { stopwatch ->
-                            stopwatch.label = binding.editStopwatch.value
+                            if (binding.editStopwatch.value != "")
+                                stopwatch.label = binding.editStopwatch.value
+                            else
+                                stopwatch.label = stopwatch.stopwatchSetNum.toString()
                         }
                         activity.stopwatchHelper.insertOrUpdateStopwatch(stopwatchList) { ids ->
                             //activity.config.timerLastConfig = stopwatchList

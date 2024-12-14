@@ -11,6 +11,9 @@ interface StopwatchDao {
     @Query("SELECT MAX(stopwatchSetNum) FROM laps")
     fun getMaxSetNum(): Int?
 
+    @Query("SELECT stopwatchSetNum FROM laps LIMIT 1")
+    fun getLastSetNum(): Int?
+
     @Query("SELECT * FROM laps ORDER BY createdAt ASC")
     fun getLaps(): List<Stopwatch>
 
@@ -25,6 +28,9 @@ interface StopwatchDao {
 
     @Query("DELETE FROM laps WHERE id=:id")
     fun deleteLap(id: Int)
+
+    @Query("DELETE FROM laps WHERE stopwatchSetNum=:setId")
+    fun deleteSet(setId: Int)
 
     @Query("DELETE FROM laps WHERE stopwatchSetNum = :number")
     suspend fun deleteBySetNum(number: Int)

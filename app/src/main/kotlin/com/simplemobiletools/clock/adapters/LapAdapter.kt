@@ -105,10 +105,10 @@ class LapAdapter(
 
             lapLabel.setTextColor(textColor)
             lapLabel.setHintTextColor(textColor.adjustAlpha(0.7f))
-            lapLabel.text = "123" //stopwatch.label
+            lapLabel.text = stopwatch.label //stopwatch.label
 
             lapText.setTextColor(textColor)
-            lapText.text = "text" //stopwatch.text
+            lapText.text = stopwatch.stopwatchSetNum.toString() //stopwatch.text
 
             AutofitHelper.create(lapTime)
             lapTime.setTextColor(textColor)

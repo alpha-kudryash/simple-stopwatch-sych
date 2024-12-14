@@ -38,8 +38,8 @@ class ViewPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
         else -> throw RuntimeException("Trying to fetch unknown fragment id $position")
     }
 
-    fun updateTimerPosition(timerId: Int) {
-        (fragments[TAB_TIMER] as? TimerFragment)?.updatePosition(timerId)
+    fun updateLapPosition() {
+        (fragments[TAB_LAP] as? LapFragment)?.updatePosition()
     }
 
     fun startStopWatch() {

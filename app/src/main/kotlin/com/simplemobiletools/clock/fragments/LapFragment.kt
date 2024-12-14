@@ -106,7 +106,19 @@ class LapFragment : Fragment() {
         refreshLaps()
     }
 
-    fun updatePosition(timerId: Int) {
+    fun updatePosition() {
+        activity?.stopwatchHelper?.getLaps { laps ->
+            val position = laps.lastIndex// { it.id == lapId }
+            if (position != INVALID_POSITION) {
+                activity?.runOnUiThread {
+                    if (lapAdapter.itemCount > position) {
+                        binding.lapsList.scrollToPosition(position)
+                    } else {
+                        lapPositionToScrollTo = position
+                    }
+                }
+            }
+        }
     }
 
     fun updateLaps() {

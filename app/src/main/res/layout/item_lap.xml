@@ -22,19 +22,19 @@
         tools:text="1"/>
 
     <com.simplemobiletools.commons.views.MyTextView
-        android:id="@+id/lap_lap_time"
+        android:id="@+id/lap_total_time"
         android:layout_width="@dimen/lap_time_size"
         android:layout_height="wrap_content"
         android:gravity="end"
         android:maxLines="1"
         android:textSize="@dimen/bigger_text_size"
-        app:layout_constraintEnd_toStartOf="@+id/lap_total_time"
+        app:layout_constraintEnd_toStartOf="@+id/lap_lap_time"
         app:layout_constraintStart_toEndOf="@+id/lap_order"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="0.00"/>
 
     <com.simplemobiletools.commons.views.MyTextView
-        android:id="@+id/lap_total_time"
+        android:id="@+id/lap_lap_time"
         android:layout_width="@dimen/lap_time_size"
         android:layout_height="wrap_content"
         android:layout_marginRight="48dp"
@@ -42,7 +42,7 @@
         android:maxLines="1"
         android:textSize="@dimen/bigger_text_size"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/lap_lap_time"
+        app:layout_constraintStart_toEndOf="@+id/lap_total_time"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="0.00"/>
 

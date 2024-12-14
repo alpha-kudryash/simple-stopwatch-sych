@@ -7,6 +7,7 @@ import com.simplemobiletools.clock.models.Alarm
 import com.simplemobiletools.clock.models.ObfuscatedAlarm
 import com.simplemobiletools.clock.models.ObfuscatedTimer
 import com.simplemobiletools.clock.models.Timer
+import com.simplemobiletools.commons.extensions.flipBit
 import com.simplemobiletools.commons.extensions.getDefaultAlarmSound
 import com.simplemobiletools.commons.extensions.getDefaultAlarmTitle
 import com.simplemobiletools.commons.helpers.BaseConfig
@@ -103,7 +104,7 @@ class Config(context: Context) : BaseConfig(context) {
 
     var stopwatchLapsSort: Int
         get() = prefs.getInt(STOPWATCH_LAPS_SORT_BY, SORT_BY_LAP or SORT_DESCENDING)
-        set(stopwatchLapsSort) = prefs.edit().putInt(STOPWATCH_LAPS_SORT_BY, stopwatchLapsSort).apply()
+        set(stopwatchLapsSort) = prefs.edit().putInt(STOPWATCH_LAPS_SORT_BY, stopwatchLapsSort.flipBit(SORT_DESCENDING)).apply()
 
     var wasInitialWidgetSetUp: Boolean
         get() = prefs.getBoolean(WAS_INITIAL_WIDGET_SET_UP, false)

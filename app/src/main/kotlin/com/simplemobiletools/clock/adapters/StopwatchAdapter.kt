@@ -61,8 +61,8 @@ class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyc
     }
 
     fun updateLastField(lapTime: Long, totalTime: Long) {
-        lastLapTimeView?.text = lapTime.formatStopwatchTime(false)
-        lastTotalTimeView?.text = totalTime.formatStopwatchTime(false)
+        lastLapTimeView?.text = lapTime.formatStopwatchTime()
+        lastTotalTimeView?.text = totalTime.formatStopwatchTime()
     }
 
     private fun setupView(view: View, lap: Lap) {
@@ -73,13 +73,13 @@ class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyc
                 itemClick(SORT_BY_LAP)
             }
 
-            lapLapTime.text = lap.lapTime.formatStopwatchTime(false)
+            lapLapTime.text = lap.lapTime.formatStopwatchTime()
             lapLapTime.setTextColor(textColor)
             lapLapTime.setOnClickListener {
                 itemClick(SORT_BY_LAP_TIME)
             }
 
-            lapTotalTime.text = lap.totalTime.formatStopwatchTime(false)
+            lapTotalTime.text = lap.totalTime.formatStopwatchTime()
             lapTotalTime.setTextColor(textColor)
             lapTotalTime.setOnClickListener {
                 itemClick(SORT_BY_TOTAL_TIME)

@@ -25,6 +25,7 @@ import com.simplemobiletools.clock.helpers.*
 class StopwatchFragment : Fragment() {
 
     private lateinit var stopwatchAdapter: StopwatchAdapter
+    private lateinit var stopwatchHelper: StopwatchHelper
     private lateinit var binding: FragmentStopwatchBinding
     private var currentEditStopwatchDialog: EditStopwatchDialog? = null
     private lateinit var lapAdapter: LapAdapter
@@ -71,22 +72,6 @@ class StopwatchFragment : Fragment() {
             stopwatchList.adapter = stopwatchAdapter
         }
 
-       /* if (this::lapAdapter.isInitialized) {
-            lapAdapter.updatePrimaryColor()
-            lapAdapter.updateBackgroundColor(requireContext().getProperBackgroundColor())
-            lapAdapter.updateTextColor(requireContext().getProperTextColor())
-        } else {
-            lapAdapter = LapAdapter(requireActivity() as SimpleActivity, ArrayList(), binding.lapsList, ::refreshLaps, ::openEditTimer)
-            binding.lapsList.adapter = lapAdapter
-        }
-        lapAdapter = LapAdapter(
-            requireActivity() as SimpleActivity,
-            emptyList(),
-            binding.lapsList,  // Убедитесь, что это правильный ID
-            onRefresh = { refreshLapList() },
-            onItemClick = { stopwatch -> /* обработка клика */ }
-        )
-        initOrUpdateAdapter()*/
         updateSortingIndicators(sorting)
         return binding.root
     }
@@ -100,17 +85,6 @@ class StopwatchFragment : Fragment() {
             //stopwatchAdapter = TimerAdapter(requireActivity() as SimpleActivity, binding.timersList, ::refreshTimers, ::openEditTimer)
             //binding.timersList.adapter = stopwatchAdapter
         }
-/*
-        if (!::lapAdapter.isInitialized) {
-            lapAdapter = LapAdapter(
-                requireActivity() as SimpleActivity,
-                emptyList(), // Начальный пустой список
-                binding.lapsRecyclerView,
-                onRefresh = { refreshLapList() }, // Обновление списка по необходимости
-                onItemClick = { stopwatch -> /* обработка клика по элементу */ }
-            )
-            binding.lapsRecyclerView.adapter = lapAdapter
-        }*/
     }
 
     override fun onResume() {
@@ -128,8 +102,6 @@ class StopwatchFragment : Fragment() {
             requireContext().config.toggleStopwatch = false
             startLapStopwatch()
         }
-
-        //refreshLaps()
     }
 
     override fun onPause() {
@@ -165,6 +137,8 @@ class StopwatchFragment : Fragment() {
             if (granted) {
                 CurrentStopwatch.toggle(true)
                 updateLaps()
+
+                activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
             } else {
                 PermissionRequiredDialog(
                     activity as SimpleActivity,
@@ -174,8 +148,8 @@ class StopwatchFragment : Fragment() {
         }
     }
 
-    private fun updateDisplayedText(totalTime: Long, lapTime: Long, useLongerMSFormat: Boolean) {
-        binding.stopwatchTime.text = totalTime.formatStopwatchTime(useLongerMSFormat)
+    private fun updateDisplayedText(totalTime: Long, lapTime: Long) {
+        binding.stopwatchTime.text = totalTime.formatStopwatchTime()
         if (CurrentStopwatch.laps.isNotEmpty() && lapTime != -1L) {
             stopwatchAdapter.updateLastField(lapTime, totalTime)
         }
@@ -184,12 +158,12 @@ class StopwatchFragment : Fragment() {
     private fun pauseResetStopwatch() {
         if (CurrentStopwatch.state == CurrentStopwatch.State.PAUSED) {
             CurrentStopwatch.reset()
-
+            //stopwatchHelper.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
             updateLaps()
             binding.apply {
                 stopwatchPauseReset.beGone()
                 stopwatchSave.beGone()
-                stopwatchTime.text = 0L.formatStopwatchTime(false)
+                stopwatchTime.text = 0L.formatStopwatchTime()
                 stopwatchSortingIndicatorsHolder.beInvisible()
                 stopwatchSave.beInvisible() //todo warning mb
             }
@@ -245,6 +219,7 @@ class StopwatchFragment : Fragment() {
                 CurrentStopwatch.lap()
                 binding.stopwatchSortingIndicatorsHolder.beVisible()
                 updateLaps()
+                //stopwatchHelper.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
             }
             else -> {}
         } // todo add pause
@@ -258,25 +233,28 @@ class StopwatchFragment : Fragment() {
             updateItems(CurrentStopwatch.laps)
             binding.stopwatchSave.beVisibleIf(CurrentStopwatch.laps.isNotEmpty())
         }
+        activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
     }
 
     private fun saveLaps() {
         activity?.run {
             hideKeyboard()
-            openEditListLap(createNewListLap(CurrentStopwatch.laps))
+            openEditListLap(createNewListLap(CurrentStopwatch.laps, CurrentStopwatch.currentSetId))
         }
+        //activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
     }
 
     private fun openEditListLap(stopwatchList: List<Stopwatch>) {
         currentEditStopwatchDialog = EditStopwatchDialog(activity as SimpleActivity, stopwatchList) {
             currentEditStopwatchDialog = null
         }
+        //activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
     }
 
     private val updateListener = object : CurrentStopwatch.UpdateListener {
-        override fun onUpdate(totalTime: Long, lapTime: Long, useLongerMSFormat: Boolean) {
+        override fun onUpdate(totalTime: Long, lapTime: Long) {
             activity?.runOnUiThread {
-                updateDisplayedText(totalTime, lapTime, useLongerMSFormat)
+                updateDisplayedText(totalTime, lapTime)
             }
         }
 
