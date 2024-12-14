@@ -105,13 +105,6 @@ fun Context.createNewListLap(laps: ArrayList<Lap>, id: Int): ArrayList<Stopwatch
     return stopwatches
 }
 
-fun Context.getOpenTimerTabIntent(timerId: Int): PendingIntent {
-    val intent = getLaunchIntent() ?: Intent(this, SplashActivity::class.java)
-    intent.putExtra(OPEN_TAB, TAB_TIMER)
-    intent.putExtra(TIMER_ID, timerId)
-    return PendingIntent.getActivity(this, timerId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-}
-
 fun Context.getOpenStopwatchTabIntent(): PendingIntent {
     val intent = getLaunchIntent() ?: Intent(this, SplashActivity::class.java)
     intent.putExtra(OPEN_TAB, TAB_STOPWATCH)

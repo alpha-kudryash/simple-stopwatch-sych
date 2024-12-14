@@ -33,8 +33,7 @@ class ViewPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
 
     private fun getFragment(position: Int) = when (position) {
         0 -> StopwatchFragment()
-        1 -> TimerFragment()
-        2 -> LapFragment()
+        1 -> LapFragment()
         else -> throw RuntimeException("Trying to fetch unknown fragment id $position")
     }
 

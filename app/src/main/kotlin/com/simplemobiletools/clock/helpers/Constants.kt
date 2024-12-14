@@ -29,7 +29,7 @@ const val STOPWATCH_CHANNEL_ID = "stopwatch_channel_id"
 const val STOPWATCH_LAPS_SORT_BY = "stopwatch_laps_sort_by"
 const val WAS_INITIAL_WIDGET_SET_UP = "was_initial_widget_set_up"
 
-const val TABS_COUNT = 3
+const val TABS_COUNT = 2
 const val EDITED_TIME_ZONE_SEPARATOR = ":"
 const val ALARM_ID = "alarm_id"
 const val NOTIFICATION_ID = "notification_id"
@@ -53,8 +53,7 @@ const val EARLY_ALARM_NOTIF_ID = 10003
 
 const val OPEN_TAB = "open_tab"
 const val TAB_STOPWATCH = 0
-const val TAB_TIMER = 1
-const val TAB_LAP = 2
+const val TAB_LAP = 1
 const val TIMER_ID = "timer_id"
 const val INVALID_TIMER_ID = -1
 const val INVALID_STOPWATCH_ID = -1

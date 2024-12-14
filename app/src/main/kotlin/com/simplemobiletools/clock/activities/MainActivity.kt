@@ -171,7 +171,6 @@ class MainActivity : SimpleActivity() {
         val tabToOpen = intent.getIntExtra(OPEN_TAB, config.lastUsedViewPagerPage)
         intent.removeExtra(OPEN_TAB)
         if (tabToOpen == TAB_LAP) {
-            val timerId = intent.getIntExtra(TIMER_ID, INVALID_TIMER_ID)
             viewPagerAdapter.updateLapPosition()
         }
 
@@ -187,10 +186,9 @@ class MainActivity : SimpleActivity() {
         binding.mainTabsHolder.removeAllTabs()
         val tabDrawables = arrayOf(
             R.drawable.ic_stopwatch_vector,
-            R.drawable.ic_hourglass_vector,
             R.drawable.ic_clock_shadowed
         )
-        val tabLabels = arrayOf(R.string.stopwatch, R.string.timer, R.string.lap)
+        val tabLabels = arrayOf(R.string.stopwatch, R.string.lap)
 
         tabDrawables.forEachIndexed { i, drawableId ->
             binding.mainTabsHolder.newTab().setCustomView(com.simplemobiletools.commons.R.layout.bottom_tablayout_item).apply tab@{
@@ -235,13 +233,11 @@ class MainActivity : SimpleActivity() {
 
     private fun getSelectedTabDrawableIds() = arrayOf(
         R.drawable.ic_stopwatch_filled_vector,
-        R.drawable.ic_hourglass_filled_vector,
         R.drawable.ic_sorting_triangle_vector
     )
 
     private fun getDeselectedTabDrawableIds() = arrayOf(
         R.drawable.ic_stopwatch_vector,
-        R.drawable.ic_hourglass_vector,
         R.drawable.ic_clock_shadowed
 
     )

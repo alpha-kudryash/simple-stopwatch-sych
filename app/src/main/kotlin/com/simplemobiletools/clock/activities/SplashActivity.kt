@@ -7,13 +7,6 @@ import com.simplemobiletools.commons.activities.BaseSplashActivity
 class SplashActivity : BaseSplashActivity() {
     override fun initActivity() {
         when {
-            intent?.action == "android.intent.action.SHOW_TIMERS" -> {
-                Intent(this, MainActivity::class.java).apply {
-                    putExtra(OPEN_TAB, TAB_TIMER)
-                    startActivity(this)
-                }
-            }
-
             intent?.action == STOPWATCH_TOGGLE_ACTION -> {
                 Intent(this, MainActivity::class.java).apply {
                     putExtra(OPEN_TAB, TAB_STOPWATCH)

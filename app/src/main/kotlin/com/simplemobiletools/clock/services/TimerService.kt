@@ -13,7 +13,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.extensions.getFormattedDuration
-import com.simplemobiletools.clock.extensions.getOpenTimerTabIntent
 import com.simplemobiletools.clock.helpers.INVALID_TIMER_ID
 import com.simplemobiletools.clock.helpers.TIMER_RUNNING_NOTIF_ID
 import com.simplemobiletools.clock.models.TimerEvent
@@ -88,10 +87,6 @@ class TimerService : Service() {
             .setOngoing(true)
             .setAutoCancel(true)
             .setChannelId(channelId)
-
-        if (firstRunningTimerId != INVALID_TIMER_ID) {
-            builder.setContentIntent(this.getOpenTimerTabIntent(firstRunningTimerId))
-        }
 
         builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
         return builder.build()
