@@ -173,6 +173,12 @@ class StopwatchFragment : Fragment() {
         }
     }
 
+    fun defaultSorting() {
+        if (Lap.sorting and SORT_DESCENDING != 0) {
+            updateSorting(Lap.sorting.flipBit(SORT_DESCENDING))
+        }
+    }
+
     private fun changeSorting(clickedValue: Int) {
         val sorting = if (Lap.sorting and clickedValue != 0) {
             Lap.sorting.flipBit(SORT_DESCENDING)
@@ -241,7 +247,6 @@ class StopwatchFragment : Fragment() {
             hideKeyboard()
             openEditListLap(createNewListLap(CurrentStopwatch.laps, CurrentStopwatch.currentSetId))
         }
-        //activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
     }
 
     private fun openEditListLap(stopwatchList: List<Stopwatch>) {

@@ -14,7 +14,7 @@ interface StopwatchDao {
     @Query("SELECT stopwatchSetNum FROM laps LIMIT 1")
     fun getLastSetNum(): Int?
 
-    @Query("SELECT * FROM laps ORDER BY createdAt ASC")
+    @Query("SELECT * FROM laps ORDER BY stopwatchSetNum ASC, milliseconds ASC")
     fun getLaps(): List<Stopwatch>
 
     @Query("SELECT * FROM laps WHERE id=:id")

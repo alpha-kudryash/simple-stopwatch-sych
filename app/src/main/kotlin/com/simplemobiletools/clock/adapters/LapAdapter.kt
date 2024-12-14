@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.DiffUtil
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.activities.SimpleActivity
 import com.simplemobiletools.clock.databinding.ItemSavesLapBinding
+import com.simplemobiletools.clock.extensions.formatStopwatchTime
 import com.simplemobiletools.clock.extensions.getFormattedDuration
 import com.simplemobiletools.clock.models.Stopwatch
 import com.simplemobiletools.clock.models.StopwatchEvent
@@ -108,11 +109,11 @@ class LapAdapter(
             lapLabel.text = stopwatch.label //stopwatch.label
 
             lapText.setTextColor(textColor)
-            lapText.text = stopwatch.stopwatchSetNum.toString() //stopwatch.text
+            lapText.text = stopwatch.text //stopwatch.text
 
             AutofitHelper.create(lapTime)
             lapTime.setTextColor(textColor)
-            lapTime.text = stopwatch.milliseconds.getFormattedDuration()
+            lapTime.text = stopwatch.milliseconds.formatStopwatchTime()
         }
     }
 

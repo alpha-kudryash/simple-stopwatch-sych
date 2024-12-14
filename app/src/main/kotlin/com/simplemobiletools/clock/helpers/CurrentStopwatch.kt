@@ -44,6 +44,7 @@ object CurrentStopwatch {
             laps.first().apply {
                 lapTime = lapTicks
                 totalTime = totalTicks
+                textTime = ""
             }
         }
         val lap = Lap(currentLap++, totalTicks, totalTicks, "")

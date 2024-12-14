@@ -103,8 +103,17 @@ class Config(context: Context) : BaseConfig(context) {
         set(id) = prefs.edit().putString(TIMER_CHANNEL_ID, id).apply()
 
     var stopwatchLapsSort: Int
-        get() = prefs.getInt(STOPWATCH_LAPS_SORT_BY, SORT_BY_LAP or SORT_DESCENDING)
-        set(stopwatchLapsSort) = prefs.edit().putInt(STOPWATCH_LAPS_SORT_BY, stopwatchLapsSort.flipBit(SORT_DESCENDING)).apply()
+        get() {
+            // Извлекаем текущую настройку сортировки
+            val currentSort = prefs.getInt(STOPWATCH_LAPS_SORT_BY, SORT_BY_LAP or SORT_DESCENDING)
+
+            // Убираем флаг SORT_DESCENDING, чтобы всегда сортировать по возрастанию по SORT_BY_LAP
+            return currentSort and SORT_BY_LAP
+        }
+        set(stopwatchLapsSort) {
+            // Устанавливаем SORT_BY_LAP с сортировкой по возрастанию (без флага SORT_DESCENDING)
+            prefs.edit().putInt(STOPWATCH_LAPS_SORT_BY, stopwatchLapsSort or SORT_BY_LAP).apply()
+        }
 
     var wasInitialWidgetSetUp: Boolean
         get() = prefs.getBoolean(WAS_INITIAL_WIDGET_SET_UP, false)

@@ -1,5 +1,7 @@
 package com.simplemobiletools.clock.adapters
 
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
@@ -85,6 +87,26 @@ class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyc
                 itemClick(SORT_BY_TOTAL_TIME)
             }
 
+            editLapText.apply {
+                setText(lap.textTime) // Отображаем текущий текст, если он есть
+                setOnFocusChangeListener { _, hasFocus ->
+                    if (!hasFocus) {
+                        // Обновляем соответствующий Lap, когда пользователь теряет фокус
+                        lap.textTime = text.toString() // Сохраняем введенный текст в объект Lap
+                        // Здесь можно выполнить любые дополнительные действия, например, обновить UI или базы данных
+                    }
+                }
+
+                // Можно добавить обработчик для отслеживания изменений текста
+                /*addTextChangedListener(object : TextWatcher {
+                    override fun beforeTextChanged(charSequence: CharSequence?, start: Int, count: Int, after: Int) {}
+                    override fun onTextChanged(charSequence: CharSequence?, start: Int, before: Int, count: Int) {}
+                    override fun afterTextChanged(editable: Editable?) {
+                        lap.textTime = editable.toString() // Обновляем значение в объекте Lap
+                    }
+                })*/
+            }
+
             if (lap.id > lastLapId) {
                 lastLapTimeView = lapLapTime
                 lastTotalTimeView = lapTotalTime
@@ -92,4 +114,6 @@ class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyc
             }
         }
     }
+
+
 }

@@ -16,10 +16,11 @@
         android:gravity="end"
         android:maxLines="1"
         android:textSize="@dimen/bigger_text_size"
-        app:layout_constraintEnd_toStartOf="@+id/lap_lap_time"
+        app:layout_constraintEnd_toStartOf="@+id/lap_total_time"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent"
-        tools:text="1"/>
+        tools:layout_editor_absoluteY="0dp"
+        tools:text="1" />
 
     <com.simplemobiletools.commons.views.MyTextView
         android:id="@+id/lap_total_time"
@@ -37,13 +38,26 @@
         android:id="@+id/lap_lap_time"
         android:layout_width="@dimen/lap_time_size"
         android:layout_height="wrap_content"
-        android:layout_marginRight="48dp"
         android:gravity="end"
         android:maxLines="1"
         android:textSize="@dimen/bigger_text_size"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/edit_lap_text"
         app:layout_constraintStart_toEndOf="@+id/lap_total_time"
         app:layout_constraintTop_toTopOf="parent"
+        tools:text="0.00"/>
+
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/edit_lap_text"
+        android:layout_width="@dimen/lap_time_size"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:textSize="@dimen/bigger_text_size"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/lap_lap_time"
+        app:layout_constraintTop_toTopOf="parent"
+        android:hint="@string/label"
         tools:text="0.00"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
