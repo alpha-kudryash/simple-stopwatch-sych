@@ -7,18 +7,23 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Icon
 import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
+import android.util.Log
+import android.view.KeyEvent
 import android.view.WindowManager
+import androidx.lifecycle.lifecycleScope
 import com.simplemobiletools.clock.BuildConfig
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.adapters.ViewPagerAdapter
 import com.simplemobiletools.clock.databinding.ActivityMainBinding
 import com.simplemobiletools.clock.extensions.*
 import com.simplemobiletools.clock.fragments.LapFragment
+import com.simplemobiletools.clock.fragments.StopwatchFragment
 import com.simplemobiletools.clock.helpers.*
 import com.simplemobiletools.commons.databinding.BottomTablayoutItemBinding
 import com.simplemobiletools.commons.extensions.*
 import com.simplemobiletools.commons.helpers.*
 import com.simplemobiletools.commons.models.FAQItem
+import kotlinx.coroutines.launch
 import me.grantland.widget.AutofitHelper
 
 class MainActivity : SimpleActivity() {
@@ -26,6 +31,8 @@ class MainActivity : SimpleActivity() {
     private var storedBackgroundColor = 0
     private var storedPrimaryColor = 0
     private val binding: ActivityMainBinding by viewBinding(ActivityMainBinding::inflate)
+    //val viewPagerAdapter = ViewPagerAdapter(supportFragmentManager)
+    //binding.viewPager.adapter = viewPagerAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         isMaterialActivity = true
@@ -148,6 +155,27 @@ class MainActivity : SimpleActivity() {
             }
         }
         super.onNewIntent(intent)
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            if (event.action == KeyEvent.ACTION_UP) {
+            //if (intent.extras?.containsKey(OPEN_TAB) == true) {
+            val tabToOpen = intent.getIntExtra(OPEN_TAB, TAB_STOPWATCH)
+            binding.viewPager.setCurrentItem(tabToOpen, false)
+            if (tabToOpen == TAB_STOPWATCH) {
+                    (binding.viewPager.adapter as ViewPagerAdapter).startStopWatch()
+            }}
+            return true
+        }
+        if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            if (event.action == KeyEvent.ACTION_UP) {
+            if (binding.viewPager.currentItem == TAB_STOPWATCH) {
+                (binding.viewPager.adapter as ViewPagerAdapter).pauseStopwatch()
+            }}
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     private fun storeStateVariables() {

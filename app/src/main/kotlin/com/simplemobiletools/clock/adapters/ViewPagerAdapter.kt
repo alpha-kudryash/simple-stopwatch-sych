@@ -10,7 +10,7 @@ import com.simplemobiletools.clock.fragments.TimerFragment
 import com.simplemobiletools.clock.helpers.*
 
 class ViewPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
-    private val fragments = HashMap<Int, Fragment>()
+    val fragments = HashMap<Int, Fragment>()
 
     override fun getItem(position: Int): Fragment {
         return getFragment(position)
@@ -43,6 +43,10 @@ class ViewPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
 
     fun startStopWatch() {
         (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.startLapStopwatch()
+    }
+
+    fun pauseStopwatch() {
+        (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.pauseStopwatch()
     }
 
     fun refreshLapFragment() {

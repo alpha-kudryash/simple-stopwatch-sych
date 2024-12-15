@@ -173,6 +173,12 @@ class StopwatchFragment : Fragment() {
         }
     }
 
+    fun pauseStopwatch() {
+        if (CurrentStopwatch.state == CurrentStopwatch.State.RUNNING) {
+            CurrentStopwatch.pause()
+        }
+    }
+
     fun defaultSorting() {
         if (Lap.sorting and SORT_DESCENDING != 0) {
             updateSorting(Lap.sorting.flipBit(SORT_DESCENDING))
