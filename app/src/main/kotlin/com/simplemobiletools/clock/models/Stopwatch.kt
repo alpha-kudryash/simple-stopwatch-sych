@@ -10,13 +10,15 @@ data class Stopwatch(
     @PrimaryKey(autoGenerate = true) var id: Int = 0,
     var stopwatchSetNum: Int,
     var milliseconds: Long,
+    var millisecondsLag: Long,
     var text: String,
     var label: String,
     var createdAt: Long,
     var channelId: String? = null,
+    var sequence: Int,
 )
 
-@Keep
+/*@Keep
 data class ObfuscatedStopwatch(
     var a: Int?,
     var b: Int,
@@ -27,4 +29,4 @@ data class ObfuscatedStopwatch(
     var g: String? = null,
 ) {
     fun toStopwatch() = Stopwatch(a ?: 0, b, c, d, e, f, g)
-}
+}*/

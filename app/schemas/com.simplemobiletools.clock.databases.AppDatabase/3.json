@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "b9109c9039ca054d68ad704df010f4fd",
+    "identityHash": "7726db070458099d01e5140f074ba19c",
     "entities": [
       {
         "tableName": "timers",
@@ -80,7 +80,7 @@
       },
       {
         "tableName": "laps",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `stopwatchSetNum` INTEGER NOT NULL, `milliseconds` INTEGER NOT NULL, `text` TEXT NOT NULL, `label` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `channelId` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `stopwatchSetNum` INTEGER NOT NULL, `milliseconds` INTEGER NOT NULL, `millisecondsLag` INTEGER NOT NULL, `text` TEXT NOT NULL, `label` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `channelId` TEXT, `sequence` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -97,6 +97,12 @@
           {
             "fieldPath": "milliseconds",
             "columnName": "milliseconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "millisecondsLag",
+            "columnName": "millisecondsLag",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -123,6 +129,12 @@
             "columnName": "channelId",
             "affinity": "TEXT",
             "notNull": false
+          },
+          {
+            "fieldPath": "sequence",
+            "columnName": "sequence",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -138,7 +150,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b9109c9039ca054d68ad704df010f4fd')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7726db070458099d01e5140f074ba19c')"
     ]
   }
 }

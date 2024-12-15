@@ -20,6 +20,16 @@ interface StopwatchDao {
     @Query("SELECT * FROM laps WHERE id=:id")
     fun getLap(id: Int): Stopwatch?
 
+    /*@Query("""
+        SELECT 
+            id, 
+            stopwatchSetNum, 
+            milliseconds,
+            ROW_NUMBER() OVER (PARTITION BY stopwatchSetNum ORDER BY milliseconds) AS row_num
+        FROM laps
+    """)
+        fun getSeqnumber(id: Int)*/
+
     @Query("SELECT * FROM laps WHERE milliseconds=:milliseconds AND label=:label")
     fun findLaps(milliseconds: Long, label: String): List<Stopwatch>
 

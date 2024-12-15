@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.DiffUtil
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.activities.SimpleActivity
 import com.simplemobiletools.clock.databinding.ItemSavesLapBinding
+import com.simplemobiletools.clock.extensions.formatStopwatchLag
 import com.simplemobiletools.clock.extensions.formatStopwatchTime
 import com.simplemobiletools.clock.extensions.getFormattedDuration
 import com.simplemobiletools.clock.models.Stopwatch
@@ -116,15 +117,24 @@ class LapAdapter(
             savesLapFrame.isSelected = isSelected
 
             lapLabel.setTextColor(textColor)
-            lapLabel.setHintTextColor(textColor.adjustAlpha(0.7f))
-            lapLabel.text = stopwatch.label //stopwatch.label
+            //lapLabel.setHintTextColor(textColor.adjustAlpha(0.7f))
+            lapLabel.text = stopwatch.label
 
             lapText.setTextColor(textColor)
-            lapText.text = stopwatch.text //stopwatch.text
+            lapText.text = stopwatch.text
 
             AutofitHelper.create(lapTime)
             lapTime.setTextColor(textColor)
             lapTime.text = stopwatch.milliseconds.formatStopwatchTime()
+
+            lapNumber.setTextColor(textColor)
+            lapNumber.text = stopwatch.sequence.toString()
+
+            lapTimeLag.setTextColor(textColor)
+            if (stopwatch.sequence != 1)
+                lapTimeLag.text = stopwatch.millisecondsLag.formatStopwatchLag()
+            else
+                lapTimeLag.text = ""
         }
     }
 
