@@ -1,5 +1,6 @@
 package com.simplemobiletools.clock.fragments
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,16 +11,13 @@ import com.simplemobiletools.clock.adapters.LapAdapter
 import com.simplemobiletools.clock.databinding.FragmentLapBinding
 import com.simplemobiletools.clock.dialogs.EditTimerDialog
 import com.simplemobiletools.clock.extensions.stopwatchHelper
-import com.simplemobiletools.clock.helpers.CurrentStopwatch
 import com.simplemobiletools.clock.helpers.DisabledItemChangeAnimator
 import com.simplemobiletools.clock.models.Stopwatch
 import com.simplemobiletools.clock.models.TimerEvent
-import com.simplemobiletools.commons.extensions.beVisibleIf
 import com.simplemobiletools.commons.extensions.getProperBackgroundColor
 import com.simplemobiletools.commons.extensions.getProperTextColor
 import com.simplemobiletools.commons.extensions.hideKeyboard
 import com.simplemobiletools.commons.extensions.updateTextColors
-import com.simplemobiletools.commons.models.AlarmSound
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -44,10 +42,13 @@ class LapFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         binding = FragmentLapBinding.inflate(inflater, container, false).apply {
             lapsList.itemAnimator = DisabledItemChangeAnimator()
-            lapAdd.setOnClickListener {
+            lapDelete.setOnClickListener {
                 activity?.run {
                     hideKeyboard()
-                    //openEditTimer(createNewTimer())
+                    openWarningDeleteAll{
+                        lapAdapter.deleteAllItems()
+                        stopwatchHelper.deleteAllLaps()
+                    }
                 }
             }
         }
@@ -126,6 +127,18 @@ class LapFragment : Fragment() {
     }
 
     private fun openEditTimer(stopwatch: Stopwatch) {
+
+    }
+
+    private fun openWarningDeleteAll(onConfirm: () -> Unit) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Предупреждение")
+            .setMessage("Вы уверены, что хотите удалить все отметки?")
+            .setPositiveButton("Да") { _, _ ->
+                onConfirm() // Выполняем переданную функцию, если пользователь согласился
+            }
+            .setNegativeButton("Нет", null) // Просто закрываем диалог, если пользователь отказался
+            .show()
         /*currentEditAlarmDialog = EditTimerDialog(activity as SimpleActivity, stopwatch) {
             currentEditAlarmDialog = null
             refreshTimers()

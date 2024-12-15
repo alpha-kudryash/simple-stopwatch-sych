@@ -237,6 +237,33 @@ class StopwatchFragment : Fragment() {
         } // todo add pause
     }
 
+    fun setCurrentIdStopwatch() {
+        activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
+    }
+
+    fun keyUpStartResetStopwatch() {
+        when (CurrentStopwatch.state) {
+            CurrentStopwatch.State.RESETED -> togglePlayLap()
+            CurrentStopwatch.State.PAUSED -> {
+                CurrentStopwatch.reset()
+                updateLaps()
+                binding.apply {
+                    stopwatchPauseReset.beGone()
+                    stopwatchSave.beGone()
+                    stopwatchTime.text = 0L.formatStopwatchTime()
+                    stopwatchSortingIndicatorsHolder.beInvisible()
+                    stopwatchSave.beInvisible() //todo warning mb
+                }
+            }
+            CurrentStopwatch.State.RUNNING -> {
+                CurrentStopwatch.lap()
+                binding.stopwatchSortingIndicatorsHolder.beVisible()
+                updateLaps()
+            }
+            else -> {}
+        }
+    }
+
     private fun updateLaps() {
         stopwatchAdapter.apply {
             updatePrimaryColor()

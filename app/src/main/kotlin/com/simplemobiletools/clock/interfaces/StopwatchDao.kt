@@ -37,4 +37,7 @@ interface StopwatchDao {
 
     @Delete
     fun deleteLaps(list: List<Stopwatch>)
+
+    @Query("DELETE FROM laps")
+    fun deleteAllLaps()
 }

@@ -164,12 +164,12 @@ class MainActivity : SimpleActivity() {
             val tabToOpen = intent.getIntExtra(OPEN_TAB, TAB_STOPWATCH)
             binding.viewPager.setCurrentItem(tabToOpen, false)
             if (tabToOpen == TAB_STOPWATCH) {
-                    (binding.viewPager.adapter as ViewPagerAdapter).startStopWatch()
+                    (binding.viewPager.adapter as ViewPagerAdapter).startResetwatch()
             }}
             return true
         }
-        if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-            if (event.action == KeyEvent.ACTION_UP) {
+        if (event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            if (event.action == KeyEvent.ACTION_DOWN) {
             if (binding.viewPager.currentItem == TAB_STOPWATCH) {
                 (binding.viewPager.adapter as ViewPagerAdapter).pauseStopwatch()
             }}
@@ -194,6 +194,7 @@ class MainActivity : SimpleActivity() {
             refreshMenuItems()
             viewPagerAdapter.refreshLapFragment()
             viewPagerAdapter.updateLapPosition()
+            viewPagerAdapter.updateCurrentIdStopwatch()
         }
 
         val tabToOpen = intent.getIntExtra(OPEN_TAB, config.lastUsedViewPagerPage)

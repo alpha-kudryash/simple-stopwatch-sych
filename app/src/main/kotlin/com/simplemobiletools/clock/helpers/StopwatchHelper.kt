@@ -56,4 +56,11 @@ class StopwatchHelper(val context: Context) {
             callback.invoke()
         }
     }
+
+    fun deleteAllLaps(callback: () -> Unit = {}) {
+        ensureBackgroundThread {
+            stopwatchDao.deleteAllLaps()
+            callback.invoke()
+        }
+    }
 }

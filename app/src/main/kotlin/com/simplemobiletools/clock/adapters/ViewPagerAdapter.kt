@@ -6,7 +6,6 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import com.simplemobiletools.clock.fragments.LapFragment
 import com.simplemobiletools.clock.fragments.StopwatchFragment
-import com.simplemobiletools.clock.fragments.TimerFragment
 import com.simplemobiletools.clock.helpers.*
 
 class ViewPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
@@ -45,8 +44,16 @@ class ViewPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
         (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.startLapStopwatch()
     }
 
+    fun startResetwatch() {
+        (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.keyUpStartResetStopwatch()
+    }
+
     fun pauseStopwatch() {
         (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.pauseStopwatch()
+    }
+
+    fun updateCurrentIdStopwatch() {
+        (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.setCurrentIdStopwatch()
     }
 
     fun refreshLapFragment() {

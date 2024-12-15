@@ -96,7 +96,18 @@ class LapAdapter(
         updateItems(newLapsList)
         removeSelectedItems(positions)
         lapsToRemove.forEach(::deleteLap)
+    }
 
+    fun deleteAllItems() {
+        selectAll()
+        val positions = getSelectedItemPositions()
+        val lapsToRemove = positions.map { position ->
+            getItem(position)
+        }
+        val newLapsList = laps.filterNot { lapsToRemove.contains(it) }
+        updateItems(newLapsList)
+        removeSelectedItems(positions)
+        lapsToRemove.forEach(::deleteLap)
     }
 
     private fun setupView(view: View, stopwatch: Stopwatch) {

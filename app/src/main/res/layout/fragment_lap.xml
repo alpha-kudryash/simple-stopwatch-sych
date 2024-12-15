@@ -21,13 +21,13 @@
         tools:listitem="@layout/item_saves_lap" />
 
     <com.simplemobiletools.commons.views.MyFloatingActionButton
-        android:id="@+id/lap_add"
+        android:id="@+id/lap_delete"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/activity_margin"
-        android:contentDescription="@string/new_timer"
-        android:src="@drawable/ic_plus_vector"
+        android:contentDescription="@string/delete"
+        android:src="@drawable/ic_delete_vector"
         app:backgroundTint="@color/color_primary"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
