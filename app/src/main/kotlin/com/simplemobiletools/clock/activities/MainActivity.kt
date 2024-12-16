@@ -6,7 +6,10 @@ import android.content.pm.ShortcutInfo
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Icon
 import android.graphics.drawable.LayerDrawable
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.util.Log
 import android.view.KeyEvent
 import android.view.WindowManager
@@ -25,6 +28,10 @@ import com.simplemobiletools.commons.helpers.*
 import com.simplemobiletools.commons.models.FAQItem
 import kotlinx.coroutines.launch
 import me.grantland.widget.AutofitHelper
+
+enum class VibrationType {
+    HIGH, LOW
+}//todo replace
 
 class MainActivity : SimpleActivity() {
     private var storedTextColor = 0
@@ -125,9 +132,9 @@ class MainActivity : SimpleActivity() {
     private fun setupOptionsMenu() {
         binding.mainToolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
-                R.id.more_apps_from_us -> launchMoreAppsFromUsIntent()
-                R.id.settings -> launchSettings()
-                R.id.about -> launchAbout()
+                //R.id.more_apps_from_us -> launchMoreAppsFromUsIntent()
+                //R.id.settings -> launchSettings()
+                //R.id.about -> launchAbout()
                 else -> return@setOnMenuItemClickListener false
             }
             return@setOnMenuItemClickListener true
@@ -166,6 +173,7 @@ class MainActivity : SimpleActivity() {
             if (tabToOpen == TAB_STOPWATCH) {
                     (binding.viewPager.adapter as ViewPagerAdapter).startResetwatch()
             }}
+            triggerVibration(VibrationType.LOW)
             return true
         }
         if (event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
@@ -173,9 +181,24 @@ class MainActivity : SimpleActivity() {
             if (binding.viewPager.currentItem == TAB_STOPWATCH) {
                 (binding.viewPager.adapter as ViewPagerAdapter).pauseStopwatch()
             }}
+            triggerVibration(VibrationType.LOW)
             return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    private fun triggerVibration(type: VibrationType) {
+        val vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
+        val vibrationDuration = when (type) {
+            VibrationType.HIGH -> 200
+            VibrationType.LOW -> 100
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val effect = VibrationEffect.createOneShot(vibrationDuration.toLong(), VibrationEffect.DEFAULT_AMPLITUDE)
+            vibrator.vibrate(effect)
+        } else {
+            vibrator.vibrate(vibrationDuration.toLong())
+        }
     }
 
     private fun storeStateVariables() {

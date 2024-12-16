@@ -133,19 +133,10 @@ class StopwatchFragment : Fragment() {
     }
 
     private fun togglePlayLap() {
-        (activity as SimpleActivity).handleNotificationPermission { granted ->
-            if (granted) {
-                CurrentStopwatch.toggle(true)
-                updateLaps()
+        CurrentStopwatch.toggle(true)
+        updateLaps()
 
-                activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
-            } else {
-                PermissionRequiredDialog(
-                    activity as SimpleActivity,
-                    com.simplemobiletools.commons.R.string.allow_notifications_reminders,
-                    { (activity as SimpleActivity).openNotificationSettings() })
-            }
-        }
+        activity?.stopwatchHelper?.getMaxSetIdStopwatch { id -> CurrentStopwatch.currentSetId = id + 1 }
     }
 
     private fun updateDisplayedText(totalTime: Long, lapTime: Long) {

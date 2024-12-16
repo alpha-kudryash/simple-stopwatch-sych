@@ -18,6 +18,6 @@
         app:showAsAction="always" />
     <item
         android:id="@+id/more_apps_from_us"
-        android:title="@string/more_apps_from_us"
+        android:title="А тут могло быть что-то полезное"
         app:showAsAction="never" />
 </menu>
