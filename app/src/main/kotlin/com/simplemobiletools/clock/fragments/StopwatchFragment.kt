@@ -12,15 +12,18 @@ import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.activities.SimpleActivity
 import com.simplemobiletools.clock.adapters.StopwatchAdapter
 import com.simplemobiletools.clock.adapters.LapAdapter
+import com.simplemobiletools.clock.commons.extensions.getProperBackgroundColor
+import com.simplemobiletools.clock.commons.extensions.getProperPrimaryColor
+import com.simplemobiletools.clock.commons.extensions.getProperTextColor
 import com.simplemobiletools.clock.databinding.FragmentStopwatchBinding
 import com.simplemobiletools.clock.dialogs.EditStopwatchDialog
 import com.simplemobiletools.clock.extensions.*
 import com.simplemobiletools.clock.models.Lap
-import com.simplemobiletools.commons.dialogs.PermissionRequiredDialog
 import com.simplemobiletools.commons.extensions.*
 import com.simplemobiletools.commons.helpers.SORT_DESCENDING
 import com.simplemobiletools.clock.models.Stopwatch
 import com.simplemobiletools.clock.helpers.*
+import com.simplemobiletools.commons.dialogs.PermissionRequiredDialog
 
 class StopwatchFragment : Fragment() {
 
@@ -133,8 +136,21 @@ class StopwatchFragment : Fragment() {
     }
 
     private fun togglePlayLap() {
-        CurrentStopwatch.toggle(true)
-        updateLaps()
+        (activity as SimpleActivity).handleNotificationPermission { granted ->
+            if (granted) {
+                CurrentStopwatch.toggle(true)
+                updateLaps()
+            } else {
+                PermissionRequiredDialog(
+                    activity as SimpleActivity,
+                    com.simplemobiletools.commons.R.string.allow_notifications_reminders, //todo retext
+                    { (activity as SimpleActivity).openNotificationSettings() })
+                CurrentStopwatch.toggle(true)
+                updateLaps()
+            }
+        }
+        //CurrentStopwatch.toggle(true)
+        //updateLaps()
 
         activity?.stopwatchHelper?.getMaxSetIdStopwatch { id -> CurrentStopwatch.currentSetId = id + 1 }
     }

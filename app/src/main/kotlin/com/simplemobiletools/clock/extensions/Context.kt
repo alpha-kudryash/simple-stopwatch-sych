@@ -15,9 +15,9 @@ import androidx.core.app.NotificationCompat
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.activities.ReminderActivity
 import com.simplemobiletools.clock.activities.SplashActivity
+import com.simplemobiletools.clock.commons.extensions.getProperPrimaryColor
 import com.simplemobiletools.clock.databases.AppDatabase
 import com.simplemobiletools.clock.helpers.*
-import com.simplemobiletools.clock.helpers.CurrentStopwatch.laps
 import com.simplemobiletools.clock.interfaces.TimerDao
 import com.simplemobiletools.clock.interfaces.StopwatchDao
 import com.simplemobiletools.clock.models.*

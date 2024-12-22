@@ -6,6 +6,7 @@ import com.simplemobiletools.clock.extensions.*
 import com.simplemobiletools.clock.models.Stopwatch
 import com.simplemobiletools.commons.extensions.*
 import androidx.appcompat.app.AlertDialog
+import com.simplemobiletools.clock.commons.extensions.getProperTextColor
 
 class EditStopwatchDialog(val activity: SimpleActivity, val stopwatchList: List<Stopwatch>, val callback: (id: Long) -> Unit) {
     private val binding = DialogEditStopwatchBinding.inflate(activity.layoutInflater)

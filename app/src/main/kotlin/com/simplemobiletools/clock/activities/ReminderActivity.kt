@@ -2,21 +2,20 @@ package com.simplemobiletools.clock.activities
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.*
-import android.provider.AlarmClock
 import android.view.MotionEvent
 import android.view.WindowManager
 import android.view.animation.AnimationUtils
 import com.simplemobiletools.clock.R
+import com.simplemobiletools.clock.commons.extensions.getProperBackgroundColor
+import com.simplemobiletools.clock.commons.extensions.getProperPrimaryColor
+import com.simplemobiletools.clock.commons.extensions.getProperTextColor
+import com.simplemobiletools.clock.commons.extensions.updateTextColors
 import com.simplemobiletools.clock.databinding.ActivityReminderBinding
 import com.simplemobiletools.clock.extensions.*
-import com.simplemobiletools.clock.helpers.ALARM_ID
-import com.simplemobiletools.clock.helpers.ALARM_NOTIF_ID
-import com.simplemobiletools.clock.helpers.getPassedSeconds
 import com.simplemobiletools.clock.models.Alarm
 import com.simplemobiletools.commons.extensions.*
 import com.simplemobiletools.commons.helpers.*
@@ -134,7 +133,9 @@ class ReminderActivity : SimpleActivity() {
     }
 
     private fun setupTimerButtons() {
-        binding.reminderStop.background = resources.getColoredDrawableWithColor(R.drawable.circle_background_filled, getProperPrimaryColor())
+        binding.reminderStop.background = resources.getColoredDrawableWithColor(R.drawable.circle_background_filled,
+            getProperPrimaryColor()
+        )
         arrayOf(binding.reminderSnooze, binding.reminderDraggableBackground, binding.reminderDraggable, binding.reminderDismiss).forEach {
             it.beGone()
         }

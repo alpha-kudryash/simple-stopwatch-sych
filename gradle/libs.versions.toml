@@ -34,6 +34,7 @@ app-build-kotlinJVMTarget = "17"
 app-version-appId = "com.simplemobiletools.clock"
 app-version-versionCode = "42"
 app-version-versionName = "5.11.2"
+biometricKtx = "1.1.0"
 [libraries]
 #AndroidX
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidx-constraintlayout" }
@@ -59,6 +60,7 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 simple-tools-commons = { module = "com.github.SimpleMobileTools:Simple-Commons", version.ref = "simple-commons" }
 #Stetho
 stetho = { module = "com.facebook.stetho:stetho", version.ref = "stetho" }
+androidx-biometric-ktx = { group = "androidx.biometric", name = "biometric-ktx", version.ref = "biometricKtx" }
 [bundles]
 room = [
     "androidx-room-ktx",

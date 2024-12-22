@@ -100,11 +100,11 @@ class StopwatchService : Service() {
     private val updateListener = object : UpdateListener {
         private val MIN_NOTIFICATION_UPDATE_INTERVAL = 500L
         private var lastUpdateTime = 0L
-        override fun onUpdate(totalTime: Long, lapTime: Long, useLongerMSFormat: Boolean) {
-            if (!isStopping && shouldNotificationBeUpdated()) {
+        override fun onUpdate(totalTime: Long, lapTime: Long) {
+            /*if (!isStopping && shouldNotificationBeUpdated()) {
                 lastUpdateTime = System.currentTimeMillis()
                 updateNotification(totalTime)
-            }
+            }*/
         }
 
         override fun onStateChanged(state: State) {

@@ -108,5 +108,6 @@ dependencies {
     implementation(libs.eventbus)
 
     implementation(libs.bundles.room)
+    implementation(libs.androidx.biometric.ktx)
     ksp(libs.androidx.room.compiler)
 }

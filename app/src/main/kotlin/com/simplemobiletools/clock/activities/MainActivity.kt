@@ -10,23 +10,18 @@ import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
-import android.util.Log
 import android.view.KeyEvent
 import android.view.WindowManager
-import androidx.lifecycle.lifecycleScope
 import com.simplemobiletools.clock.BuildConfig
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.adapters.ViewPagerAdapter
 import com.simplemobiletools.clock.databinding.ActivityMainBinding
 import com.simplemobiletools.clock.extensions.*
-import com.simplemobiletools.clock.fragments.LapFragment
-import com.simplemobiletools.clock.fragments.StopwatchFragment
+import com.simplemobiletools.clock.commons.extensions.*
 import com.simplemobiletools.clock.helpers.*
 import com.simplemobiletools.commons.databinding.BottomTablayoutItemBinding
-import com.simplemobiletools.commons.extensions.*
 import com.simplemobiletools.commons.helpers.*
 import com.simplemobiletools.commons.models.FAQItem
-import kotlinx.coroutines.launch
 import me.grantland.widget.AutofitHelper
 
 enum class VibrationType {
@@ -203,6 +198,11 @@ class MainActivity : SimpleActivity() {
 
     private fun storeStateVariables() {
         storedTextColor = getProperTextColor()
+//        fun Context.getProperTextColor() = if (baseConfig.isUsingSystemTheme) {
+//            resources.getColor(R.color.you_neutral_text_color, theme)
+//        } else {
+//            baseConfig.textColor
+//        }
         storedBackgroundColor = getProperBackgroundColor()
         storedPrimaryColor = getProperPrimaryColor()
     }
@@ -276,7 +276,7 @@ class MainActivity : SimpleActivity() {
         }
 
         binding.mainTabsHolder.getTabAt(binding.viewPager.currentItem)?.select()
-        val bottomBarColor = getBottomNavigationBackgroundColor()
+        val bottomBarColor = getCustomBottomNavigationBackgroundColor()
         binding.mainTabsHolder.setBackgroundColor(bottomBarColor)
         updateNavigationBarColor(bottomBarColor)
     }
