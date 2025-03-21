@@ -34,7 +34,7 @@ app-build-kotlinJVMTarget = "17"
 app-version-appId = "com.simplemobiletools.clock"
 app-version-versionCode = "42"
 app-version-versionName = "5.11.2"
-biometricKtx = "1.1.0"
+biometricKtx = "1.2.0-alpha05"
 [libraries]
 #AndroidX
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidx-constraintlayout" }
