@@ -1,7 +1,7 @@
 package com.simplemobiletools.clock.activities
 
 import com.simplemobiletools.clock.R
-import com.simplemobiletools.commons.activities.BaseSimpleActivity
+import com.simplemobiletools.clock.commons.activities.BaseSimpleActivity
 
 open class SimpleActivity : BaseSimpleActivity() {
     override fun getAppIconIDs() = arrayListOf(

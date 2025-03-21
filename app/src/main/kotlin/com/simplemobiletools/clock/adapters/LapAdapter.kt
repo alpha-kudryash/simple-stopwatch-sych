@@ -14,7 +14,7 @@ import com.simplemobiletools.clock.models.Stopwatch
 import com.simplemobiletools.clock.models.StopwatchEvent
 import com.simplemobiletools.clock.models.TimerEvent
 import com.simplemobiletools.commons.adapters.MyRecyclerViewListAdapter
-import com.simplemobiletools.commons.extensions.*
+import com.simplemobiletools.clock.commons.extensions.*
 import com.simplemobiletools.commons.views.MyRecyclerView
 import me.grantland.widget.AutofitHelper
 import org.greenrobot.eventbus.EventBus
