@@ -36,11 +36,7 @@ object CurrentStopwatch {
     }
 
     fun lap() {
-        if (laps.isEmpty()) {
-            val lap = Lap(currentLap++, lapTicks, totalTicks, "")
-            laps.add(0, lap)
-            lapTicks = 0
-        } else {
+        if (laps.isNotEmpty()) {
             laps.first().apply {
                 lapTime = lapTicks
                 totalTime = totalTicks

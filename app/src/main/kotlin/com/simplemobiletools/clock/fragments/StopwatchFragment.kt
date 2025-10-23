@@ -232,7 +232,11 @@ class StopwatchFragment : Fragment() {
 
     fun startLapStopwatch() {
         when (CurrentStopwatch.state) {
-            CurrentStopwatch.State.RESETED -> togglePlayLap()
+            CurrentStopwatch.State.RESETED -> {
+                togglePlayLap()
+                CurrentStopwatch.lap()
+                updateLaps()
+            }
             CurrentStopwatch.State.PAUSED -> togglePlayLap()
             CurrentStopwatch.State.RUNNING -> {
                 CurrentStopwatch.lap()
@@ -277,6 +281,10 @@ class StopwatchFragment : Fragment() {
             updateBackgroundColor(requireContext().getProperBackgroundColor())
             updateTextColor(requireContext().getProperTextColor())
             updateItems(CurrentStopwatch.laps)
+            binding.stopwatchList.post {
+                scrollToLastLap()
+                stopwatchAdapter.lastEditLapText?.requestFocus()
+            }
             binding.stopwatchSave.beVisibleIf(CurrentStopwatch.laps.isNotEmpty())
         }
         activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
@@ -309,6 +317,13 @@ class StopwatchFragment : Fragment() {
                 updatePauseResetIcon(state)
                 binding.stopwatchPauseReset.beVisibleIf(state != CurrentStopwatch.State.RESETED)
             }
+        }
+    }
+
+    private fun scrollToLastLap() {
+        val itemCount = binding.stopwatchList.adapter?.itemCount ?: 0
+        if (itemCount > 0) {
+            binding.stopwatchList.smoothScrollToPosition(itemCount - 1)
         }
     }
 }

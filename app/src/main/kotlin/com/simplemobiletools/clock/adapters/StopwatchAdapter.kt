@@ -21,6 +21,8 @@ class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyc
     private var lastLapTimeView: TextView? = null
     private var lastTotalTimeView: TextView? = null
     private var lastLapId = 0
+    var lastEditLapText: TextView? = null
+
 
     override fun getActionMenuId() = 0
 
@@ -95,6 +97,9 @@ class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyc
                         lap.textTime = text.toString() // Сохраняем введенный текст в объект Lap
                         // Здесь можно выполнить любые дополнительные действия, например, обновить UI или базы данных
                     }
+                }
+                if (lap.id == laps.maxOfOrNull { it.id }) {
+                    lastEditLapText = this
                 }
 
                 // Можно добавить обработчик для отслеживания изменений текста
