@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -16,7 +17,7 @@ import com.simplemobiletools.clock.extensions.getFormattedDuration
 import com.simplemobiletools.clock.extensions.getOpenStopwatchTabIntent
 import com.simplemobiletools.clock.helpers.STOPWATCH_RUNNING_NOTIF_ID
 import com.simplemobiletools.clock.helpers.CurrentStopwatch
-import com.simplemobiletools.clock.helpers.CurrentStopwatch.State
+import com.simplemobiletools.clock.helpers.StopwatchEngine.State
 import com.simplemobiletools.clock.helpers.CurrentStopwatch.UpdateListener
 import com.simplemobiletools.commons.extensions.showErrorToast
 import com.simplemobiletools.commons.helpers.isOreoPlus
@@ -102,23 +103,24 @@ class StopwatchService : Service() {
         private var lastUpdateTime = 0L
         override fun onUpdate(totalTime: Long, lapTime: Long) {
             if (!isStopping && shouldNotificationBeUpdated()) {
-                lastUpdateTime = System.currentTimeMillis()
+                lastUpdateTime = SystemClock.elapsedRealtime()
                 updateNotification(totalTime)
             }
         }
 
         override fun onStateChanged(state: State) {
-            if (state == State.RESETED) {
+            if (state != State.RUNNING) {
                 stopForegroundService()
             }
         }
 
         private fun shouldNotificationBeUpdated(): Boolean {
-            return (System.currentTimeMillis() - lastUpdateTime) > MIN_NOTIFICATION_UPDATE_INTERVAL
+            return (SystemClock.elapsedRealtime() - lastUpdateTime) > MIN_NOTIFICATION_UPDATE_INTERVAL
         }
     }
 
     private fun stopForegroundService() {
+        isStopping = true
         ServiceCompat.stopForeground(this@StopwatchService, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }

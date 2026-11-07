@@ -1,9 +1,12 @@
 package com.simplemobiletools.clock.helpers
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import com.simplemobiletools.clock.extensions.stopwatchDb
 import com.simplemobiletools.clock.models.Stopwatch
 import com.simplemobiletools.commons.helpers.ensureBackgroundThread
+import com.simplemobiletools.commons.extensions.showErrorToast
 
 class StopwatchHelper(val context: Context) {
     private val stopwatchDao = context.stopwatchDb
@@ -28,11 +31,20 @@ class StopwatchHelper(val context: Context) {
         }
     }
 
-    fun insertOrUpdateStopwatch(stopwatchList: List<Stopwatch>, callback: (ids: List<Long>) -> Unit = {}) {
+    fun insertOrUpdateStopwatch(
+        stopwatchList: List<Stopwatch>,
+        onError: (Exception) -> Unit = { error ->
+            Handler(Looper.getMainLooper()).post { context.showErrorToast(error) }
+        },
+        callback: (ids: List<Long>, setId: Int) -> Unit = { _, _ -> },
+    ) {
         ensureBackgroundThread {
-            stopwatchDao.deleteSet(stopwatchList[0].stopwatchSetNum)
-            val ids = stopwatchDao.insertOrUpdateStopwatch(stopwatchList)
-            callback.invoke(ids)
+            try {
+                val (setId, ids) = stopwatchDao.saveSet(stopwatchList)
+                callback.invoke(ids, setId)
+            } catch (error: Exception) {
+                onError(error)
+            }
         }
     }
 

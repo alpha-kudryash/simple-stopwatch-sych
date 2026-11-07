@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="confirm_stopwatch_reset_title">Сбросить секундомер?</string>
+    <string name="confirm_stopwatch_reset_message">Текущее время и несохранённые отсечки будут удалены. Сохранённые результаты останутся в истории.</string>
+    <string name="reset_stopwatch_action">Сбросить</string>
+    <string name="confirm_delete_laps_title">Удалить отсечки?</string>
+    <string name="confirm_delete_laps_message">Удалить выбранные отсечки (%1$d)? Это действие нельзя отменить.</string>
+    <string name="confirm_delete_all_laps_title">Удалить все сохранённые отсечки?</string>
+    <string name="confirm_delete_all_laps_message">Все сохранённые результаты будут удалены из истории. Это действие нельзя отменить.</string>
+    <string name="delete_laps_action">Удалить</string>
+</resources>

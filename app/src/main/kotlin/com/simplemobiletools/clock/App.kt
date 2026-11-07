@@ -13,7 +13,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.facebook.stetho.Stetho
 import com.simplemobiletools.clock.extensions.*
 import com.simplemobiletools.clock.helpers.CurrentStopwatch
-import com.simplemobiletools.clock.helpers.CurrentStopwatch.State
+import com.simplemobiletools.clock.helpers.StopwatchEngine.State
 import com.simplemobiletools.clock.models.StopwatchEvent
 import com.simplemobiletools.clock.models.TimerEvent
 import com.simplemobiletools.clock.models.TimerState
@@ -33,6 +33,7 @@ class App : Application(), LifecycleObserver {
 
     override fun onCreate() {
         super.onCreate()
+        CurrentStopwatch.initialize(this)
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
         EventBus.getDefault().register(this)
 
@@ -50,6 +51,7 @@ class App : Application(), LifecycleObserver {
 
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     private fun onAppBackgrounded() {
+        CurrentStopwatch.saveState()
         if (CurrentStopwatch.state == State.RUNNING) {
             startStopwatchService(this)
         }

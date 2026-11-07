@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="confirm_stopwatch_reset_title">Reset stopwatch?</string>
+    <string name="confirm_stopwatch_reset_message">The current time and unsaved laps will be cleared. Saved results will remain in history.</string>
+    <string name="reset_stopwatch_action">Reset</string>
+    <string name="confirm_delete_laps_title">Delete laps?</string>
+    <string name="confirm_delete_laps_message">Delete the selected laps (%1$d)? This cannot be undone.</string>
+    <string name="confirm_delete_all_laps_title">Delete all saved laps?</string>
+    <string name="confirm_delete_all_laps_message">All saved results will be deleted from history. This cannot be undone.</string>
+    <string name="delete_laps_action">Delete</string>
+</resources>

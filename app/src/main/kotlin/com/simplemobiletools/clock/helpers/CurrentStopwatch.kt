@@ -1,128 +1,93 @@
 package com.simplemobiletools.clock.helpers
 
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
+import androidx.annotation.MainThread
+import com.simplemobiletools.clock.helpers.StopwatchEngine.State
 import com.simplemobiletools.clock.models.Lap
-import java.util.Timer
-import java.util.TimerTask
-import java.util.concurrent.CopyOnWriteArraySet
 
-private const val UPDATE_INTERVAL = 10L
-
+/** Commands and display callbacks run on the main thread, avoiding timer/UI data races. */
+@MainThread
 object CurrentStopwatch {
+    private const val UPDATE_INTERVAL = 10L
+    private val engine = StopwatchEngine(SystemClock::elapsedRealtime)
+    private val handler = Handler(Looper.getMainLooper())
+    private val updateListeners = LinkedHashSet<UpdateListener>()
+    private var store: StopwatchSnapshotStore? = null
 
-    private var updateTimer = Timer()
-    private var uptimeAtStart = 0L
-    private var totalTicks = 0L
-    private var lapTicks = 0L
-    private var currentLap = 1
-    var currentSetId = 0
-    val laps = ArrayList<Lap>()
-    var state = State.RESETED
-        private set(value) {
-            field = value
-            for (listener in updateListeners) {
-                listener.onStateChanged(value)
-            }
+    val state: State get() = engine.state
+    val laps: ArrayList<Lap> get() = engine.laps()
+    var currentSetId: Int
+        get() = engine.currentSetId
+        set(value) {
+            engine.currentSetId = value
+            saveState()
         }
-    private var updateListeners = CopyOnWriteArraySet<UpdateListener>()
 
-    fun reset() {
-        updateTimer.cancel()
-        state = State.RESETED
-        currentLap = 1
-        totalTicks = 0
-        lapTicks = 0
-        laps.clear()
-    }
-
-    fun lap() {
-        if (laps.isNotEmpty()) {
-            laps.first().apply {
-                lapTime = lapTicks
-                totalTime = totalTicks
-                textTime = ""
-            }
-        }
-        val lap = Lap(currentLap++, totalTicks, totalTicks, "")
-        laps.add(0, lap)
-        lapTicks = 0
-    }
-
-    fun toggle(setUptimeAtStart: Boolean) {
-        when (state) {
-            State.RESETED -> {
-                state = State.RUNNING
-                updateTimer = buildUpdateTimer()
-                if (setUptimeAtStart) {
-                    uptimeAtStart = SystemClock.uptimeMillis()
-                }
-            }
-            State.PAUSED -> {
-                state = State.RUNNING
-                updateTimer = buildUpdateTimer()
-                if (setUptimeAtStart) {
-                    uptimeAtStart = SystemClock.uptimeMillis()
-                }
-            }
-            else -> {}
+    fun initialize(context: Context) {
+        if (store != null) return
+        store = StopwatchSnapshotStore(context.applicationContext)
+        store?.load()?.let { restored ->
+            runCatching { engine.restore(restored.snapshot, restored.sameBoot) }
+                .onFailure { engine.reset() }
         }
     }
 
-    fun pause() {
-        state = State.PAUSED
-        val totalDuration = SystemClock.uptimeMillis() - uptimeAtStart + totalTicks
-        updateTimer.cancel()
-        for (listener in updateListeners) {
-            listener.onUpdate(totalDuration, -1)
+    fun start() = change { engine.start() }
+    fun pause() = change { engine.pause() }
+    fun lap() = change { engine.lap() }
+    fun reset() = change { engine.reset() }
+
+    fun updateLapText(id: Int, text: String) {
+        engine.updateLapText(id, text)
+        saveState()
+    }
+
+    fun saveState() {
+        store?.save(engine.snapshot())
+    }
+
+    private fun change(action: () -> Unit) {
+        val oldState = state
+        action()
+        saveState()
+        notifyListeners(oldState != state)
+        scheduleUpdate()
+    }
+
+    fun addUpdateListener(listener: UpdateListener) {
+        updateListeners.add(listener)
+        listener.onStateChanged(state)
+        val time = engine.reading()
+        listener.onUpdate(time.totalTime, time.lapTime)
+        scheduleUpdate()
+    }
+
+    fun removeUpdateListener(listener: UpdateListener) {
+        updateListeners.remove(listener)
+        scheduleUpdate()
+    }
+
+    private fun notifyListeners(stateChanged: Boolean = false) {
+        val time = engine.reading()
+        updateListeners.toList().forEach { listener ->
+            if (stateChanged) listener.onStateChanged(state)
+            listener.onUpdate(time.totalTime, time.lapTime)
         }
     }
 
-    /**
-     * Add a update listener to the stopwatch. The listener gets the current state
-     * immediately after adding. To avoid memory leaks the listener should be removed
-     * from the stopwatch.
-     * @param updateListener the listener
-     */
-    fun addUpdateListener(updateListener: UpdateListener) {
-        updateListeners.add(updateListener)
-        updateListener.onUpdate(
-            totalTicks,
-            lapTicks,
-        )
-        updateListener.onStateChanged(state)
-    }
-
-    /**
-     * Remove the listener from the stopwatch
-     * @param updateListener the listener
-     */
-    fun removeUpdateListener(updateListener: UpdateListener) {
-        updateListeners.remove(updateListener)
-    }
-
-    private fun buildUpdateTimer(): Timer {
-        return Timer().apply {
-            scheduleAtFixedRate(object : TimerTask() {
-                override fun run() {
-                    if (state == State.RUNNING) {
-                        for (listener in updateListeners) {
-                            listener.onUpdate(
-                                totalTicks,
-                                lapTicks
-                            )
-                        }
-                        totalTicks += UPDATE_INTERVAL
-                        lapTicks += UPDATE_INTERVAL
-                    }
-                }
-            }, 0, UPDATE_INTERVAL)
+    private val update = object : Runnable {
+        override fun run() {
+            notifyListeners()
+            scheduleUpdate()
         }
     }
 
-    enum class State {
-        RUNNING,
-        PAUSED,
-        RESETED
+    private fun scheduleUpdate() {
+        handler.removeCallbacks(update)
+        if (state == State.RUNNING && updateListeners.isNotEmpty()) handler.postDelayed(update, UPDATE_INTERVAL)
     }
 
     interface UpdateListener {
