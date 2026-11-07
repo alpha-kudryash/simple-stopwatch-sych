@@ -1,0 +1,2044 @@
+From 39b68cf8fcbf1d6301ccfcc4617437e3c973abd0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=D0=BA=D0=B8=D1=80=D0=B8=D0=BB=D0=BB?=
+ <imiroshnichenkokm@gmail.com>
+Date: Sat, 7 Nov 2026 08:55:58 +0000
+Subject: [PATCH] Release 2.0: fix stopwatch timing, lap capture and safe reset
+
+---
+ README.md                                     |  39 +++-
+ app/build.gradle.kts                          |  11 ++
+ .../4.json                                    | 156 ++++++++++++++++
+ .../kotlin/com/simplemobiletools/clock/App.kt |   4 +-
+ .../clock/activities/MainActivity.kt          |  38 ++--
+ .../clock/adapters/LapAdapter.kt              |  41 ++---
+ .../clock/adapters/StopwatchAdapter.kt        |  46 ++---
+ .../clock/adapters/ViewPagerAdapter.kt        |   8 +-
+ .../clock/databases/AppDatabase.kt            |  58 +++++-
+ .../clock/dialogs/EditStopwatchDialog.kt      |  22 ++-
+ .../clock/extensions/Context.kt               |   3 +-
+ .../clock/fragments/LapFragment.kt            |  20 ++-
+ .../clock/fragments/StopwatchFragment.kt      | 116 ++++++------
+ .../clock/helpers/CurrentStopwatch.kt         | 167 +++++++-----------
+ .../clock/helpers/StopwatchEngine.kt          | 105 +++++++++++
+ .../clock/helpers/StopwatchHelper.kt          |  20 ++-
+ .../clock/helpers/StopwatchSnapshotStore.kt   |  70 ++++++++
+ .../clock/interfaces/StopwatchDao.kt          |  12 ++
+ .../clock/services/StopwatchService.kt        |  10 +-
+ .../main/res/values-ru/stopwatch_actions.xml  |  11 ++
+ app/src/main/res/values/stopwatch_actions.xml |  11 ++
+ app/src/preview/res/values-ru/strings.xml     |   5 +
+ app/src/preview/res/values/strings.xml        |   5 +
+ .../clock/activities/StopwatchControlsTest.kt |  81 +++++++++
+ .../clock/databases/StopwatchDatabaseTest.kt  | 142 +++++++++++++++
+ .../clock/helpers/StopwatchEngineTest.kt      | 159 +++++++++++++++++
+ .../helpers/StopwatchSnapshotStoreTest.kt     |  62 +++++++
+ gradle/libs.versions.toml                     |   4 +-
+ 28 files changed, 1139 insertions(+), 287 deletions(-)
+ create mode 100644 app/schemas/com.simplemobiletools.clock.databases.AppDatabase/4.json
+ create mode 100644 app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchEngine.kt
+ create mode 100644 app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchSnapshotStore.kt
+ create mode 100644 app/src/main/res/values-ru/stopwatch_actions.xml
+ create mode 100644 app/src/main/res/values/stopwatch_actions.xml
+ create mode 100644 app/src/preview/res/values-ru/strings.xml
+ create mode 100644 app/src/preview/res/values/strings.xml
+ create mode 100644 app/src/test/kotlin/com/simplemobiletools/clock/activities/StopwatchControlsTest.kt
+ create mode 100644 app/src/test/kotlin/com/simplemobiletools/clock/databases/StopwatchDatabaseTest.kt
+ create mode 100644 app/src/test/kotlin/com/simplemobiletools/clock/helpers/StopwatchEngineTest.kt
+ create mode 100644 app/src/test/kotlin/com/simplemobiletools/clock/helpers/StopwatchSnapshotStoreTest.kt
+
+diff --git a/README.md b/README.md
+index 83b1f33..f13dce9 100644
+--- a/README.md
++++ b/README.md
+@@ -1,7 +1,36 @@
+ # Секундомер
+ 
+-Проект был прямо скопирован из [Simple-Clock](https://github.com/SimpleMobileTools/Simple-Clock/), удалены практически все функции, кроме секундомера.
+-Функционал:
+-- Старт, фикстирование отсечки, удалить все отсейки на клавишу Увеличить громкость
+-- Пауза на Уменьшить громкость
+-- Возможность сохранения отсечек с тегом. Если тега нет, то будет присвоен порядковый номер.
++Проект создан на основе [Simple Clock](https://github.com/SimpleMobileTools/Simple-Clock/).
++Основные функции — секундомер, отсечки с подписями и история сохранённых замеров.
++
++Управление при открытом приложении:
++
++- **Громкость +**: начать или продолжить замер; во время работы — сделать отсечку.
++- **Громкость −**: поставить замер на паузу.
++- **Кнопка запуска на экране**: начать или продолжить замер; во время работы — сделать отсечку.
++- **Сохранить**: записать завершённые отсечки в историю с указанным названием группы или её порядковым номером.
++
++В списке показываются только зафиксированные отсечки: время каждой строки останавливается сразу после нажатия.
++Сброс секундомера и удаление отсечек требуют подтверждения.
++
++Длительность считается по системным монотонным часам, включая сон устройства.
++Текущий замер, подписи и отсечки сохраняются и восстанавливаются после завершения процесса приложения.
++После перезагрузки телефона восстанавливается последнее сохранённое время на паузе.
++Управление клавишами при заблокированном экране или поверх других приложений не реализовано.
++
++Для сборки нужны JDK 17, Android SDK 34 и доступ к зависимостям из Google Maven, Maven Central и JitPack.
++Проверка логики секундомера, восстановления состояния, миграций базы и сборка отладочного APK:
++
++```sh
++bash ./gradlew testCoreDebugUnitTest assembleCoreDebug
++```
++
++Пробная версия 2.0 для отдельной установки рядом с текущим приложением:
++
++```sh
++bash ./gradlew assemblePreviewRelease
++```
++
++Это сборка типа release с тестовой подписью и отдельным идентификатором
++`com.simplemobiletools.clock.preview`. Она не заменяет установленную версию и её данные.
++Для выпуска обновления основного приложения нужен его исходный ключ подписи.
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+index 99d4b61..4fc8450 100644
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -70,12 +70,20 @@ android {
+         register("core")
+         register("fdroid")
+         register("prepaid")
++        register("preview") {
++            applicationIdSuffix = ".preview"
++            // Installable release build for device testing without replacing an existing signed app.
++            signingConfig = signingConfigs.getByName("debug")
++        }
+     }
+ 
+     sourceSets {
+         getByName("main").java.srcDirs("src/main/kotlin")
++        getByName("test").resources.srcDir("schemas")
+     }
+ 
++    testOptions.unitTests.isIncludeAndroidResources = true
++
+     compileOptions {
+         val currentJavaVersionFromLibs = JavaVersion.valueOf(libs.versions.app.build.javaVersion.get().toString())
+         sourceCompatibility = currentJavaVersionFromLibs
+@@ -110,4 +118,7 @@ dependencies {
+     implementation(libs.bundles.room)
+     implementation(libs.androidx.biometric.ktx)
+     ksp(libs.androidx.room.compiler)
++
++    testImplementation("junit:junit:4.13.2")
++    testImplementation("org.robolectric:robolectric:4.11.1")
+ }
+diff --git a/app/schemas/com.simplemobiletools.clock.databases.AppDatabase/4.json b/app/schemas/com.simplemobiletools.clock.databases.AppDatabase/4.json
+new file mode 100644
+index 0000000..fe0e155
+--- /dev/null
++++ b/app/schemas/com.simplemobiletools.clock.databases.AppDatabase/4.json
+@@ -0,0 +1,156 @@
++{
++  "formatVersion": 1,
++  "database": {
++    "version": 4,
++    "identityHash": "7726db070458099d01e5140f074ba19c",
++    "entities": [
++      {
++        "tableName": "timers",
++        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `seconds` INTEGER NOT NULL, `state` TEXT NOT NULL, `vibrate` INTEGER NOT NULL, `soundUri` TEXT NOT NULL, `soundTitle` TEXT NOT NULL, `label` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `channelId` TEXT, `oneShot` INTEGER NOT NULL)",
++        "fields": [
++          {
++            "fieldPath": "id",
++            "columnName": "id",
++            "affinity": "INTEGER",
++            "notNull": false
++          },
++          {
++            "fieldPath": "seconds",
++            "columnName": "seconds",
++            "affinity": "INTEGER",
++            "notNull": true
++          },
++          {
++            "fieldPath": "state",
++            "columnName": "state",
++            "affinity": "TEXT",
++            "notNull": true
++          },
++          {
++            "fieldPath": "vibrate",
++            "columnName": "vibrate",
++            "affinity": "INTEGER",
++            "notNull": true
++          },
++          {
++            "fieldPath": "soundUri",
++            "columnName": "soundUri",
++            "affinity": "TEXT",
++            "notNull": true
++          },
++          {
++            "fieldPath": "soundTitle",
++            "columnName": "soundTitle",
++            "affinity": "TEXT",
++            "notNull": true
++          },
++          {
++            "fieldPath": "label",
++            "columnName": "label",
++            "affinity": "TEXT",
++            "notNull": true
++          },
++          {
++            "fieldPath": "createdAt",
++            "columnName": "createdAt",
++            "affinity": "INTEGER",
++            "notNull": true
++          },
++          {
++            "fieldPath": "channelId",
++            "columnName": "channelId",
++            "affinity": "TEXT",
++            "notNull": false
++          },
++          {
++            "fieldPath": "oneShot",
++            "columnName": "oneShot",
++            "affinity": "INTEGER",
++            "notNull": true
++          }
++        ],
++        "primaryKey": {
++          "autoGenerate": true,
++          "columnNames": [
++            "id"
++          ]
++        },
++        "indices": [],
++        "foreignKeys": []
++      },
++      {
++        "tableName": "laps",
++        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `stopwatchSetNum` INTEGER NOT NULL, `milliseconds` INTEGER NOT NULL, `millisecondsLag` INTEGER NOT NULL, `text` TEXT NOT NULL, `label` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `channelId` TEXT, `sequence` INTEGER NOT NULL)",
++        "fields": [
++          {
++            "fieldPath": "id",
++            "columnName": "id",
++            "affinity": "INTEGER",
++            "notNull": true
++          },
++          {
++            "fieldPath": "stopwatchSetNum",
++            "columnName": "stopwatchSetNum",
++            "affinity": "INTEGER",
++            "notNull": true
++          },
++          {
++            "fieldPath": "milliseconds",
++            "columnName": "milliseconds",
++            "affinity": "INTEGER",
++            "notNull": true
++          },
++          {
++            "fieldPath": "millisecondsLag",
++            "columnName": "millisecondsLag",
++            "affinity": "INTEGER",
++            "notNull": true
++          },
++          {
++            "fieldPath": "text",
++            "columnName": "text",
++            "affinity": "TEXT",
++            "notNull": true
++          },
++          {
++            "fieldPath": "label",
++            "columnName": "label",
++            "affinity": "TEXT",
++            "notNull": true
++          },
++          {
++            "fieldPath": "createdAt",
++            "columnName": "createdAt",
++            "affinity": "INTEGER",
++            "notNull": true
++          },
++          {
++            "fieldPath": "channelId",
++            "columnName": "channelId",
++            "affinity": "TEXT",
++            "notNull": false
++          },
++          {
++            "fieldPath": "sequence",
++            "columnName": "sequence",
++            "affinity": "INTEGER",
++            "notNull": true
++          }
++        ],
++        "primaryKey": {
++          "autoGenerate": true,
++          "columnNames": [
++            "id"
++          ]
++        },
++        "indices": [],
++        "foreignKeys": []
++      }
++    ],
++    "views": [],
++    "setupQueries": [
++      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
++      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7726db070458099d01e5140f074ba19c')"
++    ]
++  }
++}
+\ No newline at end of file
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/App.kt b/app/src/main/kotlin/com/simplemobiletools/clock/App.kt
+index 35b8745..30c6e9a 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/App.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/App.kt
+@@ -13,7 +13,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
+ import com.facebook.stetho.Stetho
+ import com.simplemobiletools.clock.extensions.*
+ import com.simplemobiletools.clock.helpers.CurrentStopwatch
+-import com.simplemobiletools.clock.helpers.CurrentStopwatch.State
++import com.simplemobiletools.clock.helpers.StopwatchEngine.State
+ import com.simplemobiletools.clock.models.StopwatchEvent
+ import com.simplemobiletools.clock.models.TimerEvent
+ import com.simplemobiletools.clock.models.TimerState
+@@ -33,6 +33,7 @@ class App : Application(), LifecycleObserver {
+ 
+     override fun onCreate() {
+         super.onCreate()
++        CurrentStopwatch.initialize(this)
+         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+         EventBus.getDefault().register(this)
+ 
+@@ -50,6 +51,7 @@ class App : Application(), LifecycleObserver {
+ 
+     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
+     private fun onAppBackgrounded() {
++        CurrentStopwatch.saveState()
+         if (CurrentStopwatch.state == State.RUNNING) {
+             startStopwatchService(this)
+         }
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/activities/MainActivity.kt b/app/src/main/kotlin/com/simplemobiletools/clock/activities/MainActivity.kt
+index 44e3f15..ad25ee4 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/activities/MainActivity.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/activities/MainActivity.kt
+@@ -160,26 +160,25 @@ class MainActivity : SimpleActivity() {
+     }
+ 
+     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+-        if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+-            if (event.action == KeyEvent.ACTION_UP) {
+-            //if (intent.extras?.containsKey(OPEN_TAB) == true) {
+-            val tabToOpen = intent.getIntExtra(OPEN_TAB, TAB_STOPWATCH)
+-            binding.viewPager.setCurrentItem(tabToOpen, false)
+-            if (tabToOpen == TAB_STOPWATCH) {
+-                    (binding.viewPager.adapter as ViewPagerAdapter).startResetwatch()
+-            }}
+-            triggerVibration(VibrationType.LOW)
+-            return true
+-        }
+-        if (event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+-            if (event.action == KeyEvent.ACTION_DOWN) {
+-            if (binding.viewPager.currentItem == TAB_STOPWATCH) {
+-                (binding.viewPager.adapter as ViewPagerAdapter).pauseStopwatch()
+-            }}
+-            triggerVibration(VibrationType.LOW)
+-            return true
++        return when (event.keyCode) {
++            KeyEvent.KEYCODE_VOLUME_UP -> {
++                if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) {
++                    binding.viewPager.setCurrentItem(TAB_STOPWATCH, false)
++                    getViewPagerAdapter()?.startOrLapStopwatch()
++                    triggerVibration(VibrationType.LOW)
++                }
++                true
++            }
++            KeyEvent.KEYCODE_VOLUME_DOWN -> {
++                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 &&
++                    binding.viewPager.currentItem == TAB_STOPWATCH) {
++                    getViewPagerAdapter()?.pauseStopwatch()
++                    triggerVibration(VibrationType.LOW)
++                }
++                true
++            }
++            else -> super.dispatchKeyEvent(event)
+         }
+-        return super.dispatchKeyEvent(event)
+     }
+ 
+     private fun triggerVibration(type: VibrationType) {
+@@ -217,7 +216,6 @@ class MainActivity : SimpleActivity() {
+             refreshMenuItems()
+             viewPagerAdapter.refreshLapFragment()
+             viewPagerAdapter.updateLapPosition()
+-            viewPagerAdapter.updateCurrentIdStopwatch()
+         }
+ 
+         val tabToOpen = intent.getIntExtra(OPEN_TAB, config.lastUsedViewPagerPage)
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/adapters/LapAdapter.kt b/app/src/main/kotlin/com/simplemobiletools/clock/adapters/LapAdapter.kt
+index 96ef8b2..0ef1647 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/adapters/LapAdapter.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/adapters/LapAdapter.kt
+@@ -3,10 +3,12 @@ package com.simplemobiletools.clock.adapters
+ import android.view.Menu
+ import android.view.View
+ import android.view.ViewGroup
++import androidx.appcompat.app.AlertDialog
+ import androidx.recyclerview.widget.DiffUtil
+ import com.simplemobiletools.clock.R
+ import com.simplemobiletools.clock.activities.SimpleActivity
+ import com.simplemobiletools.clock.databinding.ItemSavesLapBinding
++import com.simplemobiletools.clock.extensions.stopwatchHelper
+ import com.simplemobiletools.clock.extensions.formatStopwatchLag
+ import com.simplemobiletools.clock.extensions.formatStopwatchTime
+ import com.simplemobiletools.clock.extensions.getFormattedDuration
+@@ -89,26 +91,19 @@ class LapAdapter(
+     }
+ 
+     private fun deleteItems() {
+-        val positions = getSelectedItemPositions()
+-        val lapsToRemove = positions.map { position ->
+-            getItem(position)
+-        }
+-        val newLapsList = laps.filterNot { lapsToRemove.contains(it) }
+-        updateItems(newLapsList)
+-        removeSelectedItems(positions)
+-        lapsToRemove.forEach(::deleteLap)
+-    }
+-
+-    fun deleteAllItems() {
+-        selectAll()
+-        val positions = getSelectedItemPositions()
+-        val lapsToRemove = positions.map { position ->
+-            getItem(position)
+-        }
+-        val newLapsList = laps.filterNot { lapsToRemove.contains(it) }
+-        updateItems(newLapsList)
+-        removeSelectedItems(positions)
+-        lapsToRemove.forEach(::deleteLap)
++        val selectedIds = selectedKeys.toSet()
++        val lapsToRemove = laps.filter { it.id in selectedIds }
++        if (lapsToRemove.isEmpty()) return
++        AlertDialog.Builder(simpleActivity)
++            .setTitle(R.string.confirm_delete_laps_title)
++            .setMessage(simpleActivity.getString(R.string.confirm_delete_laps_message, lapsToRemove.size))
++            .setPositiveButton(R.string.delete_laps_action) { _, _ ->
++                simpleActivity.stopwatchHelper.deleteLaps(lapsToRemove) {
++                    EventBus.getDefault().post(StopwatchEvent.Refresh)
++                }
++            }
++            .setNegativeButton(com.simplemobiletools.commons.R.string.cancel, null)
++            .show()
+     }
+ 
+     private fun setupView(view: View, stopwatch: Stopwatch) {
+@@ -138,12 +133,8 @@ class LapAdapter(
+         }
+     }
+ 
+-    private fun deleteLap(lap: Stopwatch) {
+-        EventBus.getDefault().post(StopwatchEvent.Delete(lap.id!!))
+-    }
+-
+     fun updateItems(newItems: List<Stopwatch>) {
+-        //lastLapId = 0
++        laps = newItems.toList()
+         submitList(newItems)
+         //laps.sort()
+         //notifyDataSetChanged()
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/adapters/StopwatchAdapter.kt b/app/src/main/kotlin/com/simplemobiletools/clock/adapters/StopwatchAdapter.kt
+index a8a6b5d..c4ac6be 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/adapters/StopwatchAdapter.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/adapters/StopwatchAdapter.kt
+@@ -9,6 +9,7 @@ import android.widget.TextView
+ import com.simplemobiletools.clock.activities.SimpleActivity
+ import com.simplemobiletools.clock.databinding.ItemLapBinding
+ import com.simplemobiletools.clock.extensions.formatStopwatchTime
++import com.simplemobiletools.clock.helpers.CurrentStopwatch
+ import com.simplemobiletools.clock.helpers.SORT_BY_LAP
+ import com.simplemobiletools.clock.helpers.SORT_BY_LAP_TIME
+ import com.simplemobiletools.clock.helpers.SORT_BY_TOTAL_TIME
+@@ -18,9 +19,6 @@ import com.simplemobiletools.commons.views.MyRecyclerView
+ 
+ class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyclerView: MyRecyclerView, itemClick: (Any) -> Unit) :
+     MyRecyclerViewAdapter(activity, recyclerView, itemClick) {
+-    private var lastLapTimeView: TextView? = null
+-    private var lastTotalTimeView: TextView? = null
+-    private var lastLapId = 0
+     var lastEditLapText: TextView? = null
+ 
+ 
+@@ -57,18 +55,13 @@ class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyc
+     override fun getItemCount() = laps.size
+ 
+     fun updateItems(newItems: ArrayList<Lap>) {
+-        lastLapId = 0
++        lastEditLapText = null
+         laps = newItems.clone() as ArrayList<Lap>
+         laps.sort()
+         notifyDataSetChanged()
+         finishActMode()
+     }
+ 
+-    fun updateLastField(lapTime: Long, totalTime: Long) {
+-        lastLapTimeView?.text = lapTime.formatStopwatchTime()
+-        lastTotalTimeView?.text = totalTime.formatStopwatchTime()
+-    }
+-
+     private fun setupView(view: View, lap: Lap) {
+         ItemLapBinding.bind(view).apply {
+             lapOrder.text = lap.id.toString()
+@@ -90,32 +83,23 @@ class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyc
+             }
+ 
+             editLapText.apply {
+-                setText(lap.textTime) // Отображаем текущий текст, если он есть
+-                setOnFocusChangeListener { _, hasFocus ->
+-                    if (!hasFocus) {
+-                        // Обновляем соответствующий Lap, когда пользователь теряет фокус
+-                        lap.textTime = text.toString() // Сохраняем введенный текст в объект Lap
+-                        // Здесь можно выполнить любые дополнительные действия, например, обновить UI или базы данных
++                (tag as? TextWatcher)?.let { removeTextChangedListener(it) }
++                setText(lap.textTime)
++                val watcher = object : TextWatcher {
++                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
++                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
++                    override fun afterTextChanged(text: Editable?) {
++                        lap.textTime = text.toString()
++                        CurrentStopwatch.updateLapText(lap.id, lap.textTime)
+                     }
+                 }
+-                if (lap.id == laps.maxOfOrNull { it.id }) {
+-                    lastEditLapText = this
+-                }
+-
+-                // Можно добавить обработчик для отслеживания изменений текста
+-                /*addTextChangedListener(object : TextWatcher {
+-                    override fun beforeTextChanged(charSequence: CharSequence?, start: Int, count: Int, after: Int) {}
+-                    override fun onTextChanged(charSequence: CharSequence?, start: Int, before: Int, count: Int) {}
+-                    override fun afterTextChanged(editable: Editable?) {
+-                        lap.textTime = editable.toString() // Обновляем значение в объекте Lap
+-                    }
+-                })*/
++                addTextChangedListener(watcher)
++                tag = watcher
+             }
+ 
+-            if (lap.id > lastLapId) {
+-                lastLapTimeView = lapLapTime
+-                lastTotalTimeView = lapTotalTime
+-                lastLapId = lap.id
++            if (lastEditLapText === editLapText) lastEditLapText = null
++            if (lap.id == laps.maxOfOrNull { it.id }) {
++                lastEditLapText = editLapText
+             }
+         }
+     }
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/adapters/ViewPagerAdapter.kt b/app/src/main/kotlin/com/simplemobiletools/clock/adapters/ViewPagerAdapter.kt
+index 72139fe..f63c0c1 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/adapters/ViewPagerAdapter.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/adapters/ViewPagerAdapter.kt
+@@ -44,18 +44,14 @@ class ViewPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
+         (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.startLapStopwatch()
+     }
+ 
+-    fun startResetwatch() {
+-        (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.keyUpStartResetStopwatch()
++    fun startOrLapStopwatch() {
++        (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.keyUpStartLapStopwatch()
+     }
+ 
+     fun pauseStopwatch() {
+         (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.pauseStopwatch()
+     }
+ 
+-    fun updateCurrentIdStopwatch() {
+-        (fragments[TAB_STOPWATCH] as? StopwatchFragment)?.setCurrentIdStopwatch()
+-    }
+-
+     fun refreshLapFragment() {
+         (fragments[TAB_LAP] as? LapFragment)?.updateLaps()
+     }
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/databases/AppDatabase.kt b/app/src/main/kotlin/com/simplemobiletools/clock/databases/AppDatabase.kt
+index abd9423..1463f4e 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/databases/AppDatabase.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/databases/AppDatabase.kt
+@@ -16,7 +16,7 @@ import com.simplemobiletools.clock.models.Stopwatch
+ import com.simplemobiletools.clock.models.TimerState
+ import java.util.concurrent.Executors
+ 
+-@Database(entities = [Timer::class, Stopwatch::class], version = 3)
++@Database(entities = [Timer::class, Stopwatch::class], version = 4)
+ @TypeConverters(Converters::class)
+ abstract class AppDatabase : RoomDatabase() {
+ 
+@@ -24,6 +24,7 @@ abstract class AppDatabase : RoomDatabase() {
+     abstract fun StopwatchDao(): StopwatchDao
+ 
+     companion object {
++        @Volatile
+         private var db: AppDatabase? = null
+ 
+         fun getInstance(context: Context): AppDatabase {
+@@ -31,8 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
+                 synchronized(AppDatabase::class) {
+                     if (db == null) {
+                         db = Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "app.db")
+-                            .fallbackToDestructiveMigration()
+-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
++                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                             .addCallback(object : Callback() {
+                                 override fun onCreate(db: SupportSQLiteDatabase) {
+                                     super.onCreate(db)
+@@ -65,15 +65,61 @@ abstract class AppDatabase : RoomDatabase() {
+             }
+         }
+ 
+-        private val MIGRATION_1_2 = object : Migration(1, 2) {
++        internal val MIGRATION_1_2 = object : Migration(1, 2) {
+             override fun migrate(db: SupportSQLiteDatabase) {
+                 db.execSQL("ALTER TABLE `timers` ADD COLUMN `oneShot` INTEGER NOT NULL DEFAULT 0")
+             }
+         }
+ 
+-        private val MIGRATION_2_3 = object : Migration(2, 3) {
++        internal val MIGRATION_2_3 = object : Migration(2, 3) {
+             override fun migrate(db: SupportSQLiteDatabase) {
+-                db.execSQL("ALTER TABLE `laps` ADD COLUMN `oneShot` INTEGER NOT NULL DEFAULT 0")
++                db.execSQL("""
++                    CREATE TABLE IF NOT EXISTS `laps` (
++                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
++                        `stopwatchSetNum` INTEGER NOT NULL,
++                        `milliseconds` INTEGER NOT NULL,
++                        `millisecondsLag` INTEGER NOT NULL,
++                        `text` TEXT NOT NULL,
++                        `label` TEXT NOT NULL,
++                        `createdAt` INTEGER NOT NULL,
++                        `channelId` TEXT,
++                        `sequence` INTEGER NOT NULL
++                    )
++                """.trimIndent())
++            }
++        }
++
++        // Earlier releases changed the laps columns without incrementing database version 3.
++        // Accept both layouts and preserve all existing rows when upgrading them to version 4.
++        internal val MIGRATION_3_4 = object : Migration(3, 4) {
++            override fun migrate(db: SupportSQLiteDatabase) {
++                val columns = mutableSetOf<String>()
++                db.query("PRAGMA table_info(`laps`)").use { cursor ->
++                    val nameIndex = cursor.getColumnIndexOrThrow("name")
++                    while (cursor.moveToNext()) columns.add(cursor.getString(nameIndex))
++                }
++                if ("millisecondsLag" !in columns) {
++                    db.execSQL("ALTER TABLE `laps` ADD COLUMN `millisecondsLag` INTEGER NOT NULL DEFAULT 0")
++                    db.execSQL("""
++                        UPDATE `laps` SET `millisecondsLag` = `milliseconds` - COALESCE((
++                            SELECT MAX(previous.milliseconds) FROM laps AS previous
++                            WHERE previous.stopwatchSetNum = laps.stopwatchSetNum
++                            AND (previous.milliseconds < laps.milliseconds
++                                OR (previous.milliseconds = laps.milliseconds AND previous.id < laps.id))
++                        ), 0)
++                    """.trimIndent())
++                }
++                if ("sequence" !in columns) {
++                    db.execSQL("ALTER TABLE `laps` ADD COLUMN `sequence` INTEGER NOT NULL DEFAULT 0")
++                    db.execSQL("""
++                        UPDATE `laps` SET `sequence` = (
++                            SELECT COUNT(*) FROM laps AS previous
++                            WHERE previous.stopwatchSetNum = laps.stopwatchSetNum
++                            AND (previous.milliseconds < laps.milliseconds
++                                OR (previous.milliseconds = laps.milliseconds AND previous.id <= laps.id))
++                        )
++                    """.trimIndent())
++                }
+             }
+         }
+     }
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/dialogs/EditStopwatchDialog.kt b/app/src/main/kotlin/com/simplemobiletools/clock/dialogs/EditStopwatchDialog.kt
+index 6d37c18..ccc15d6 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/dialogs/EditStopwatchDialog.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/dialogs/EditStopwatchDialog.kt
+@@ -4,6 +4,7 @@ import com.simplemobiletools.clock.activities.SimpleActivity
+ import com.simplemobiletools.clock.databinding.DialogEditStopwatchBinding
+ import com.simplemobiletools.clock.extensions.*
+ import com.simplemobiletools.clock.models.Stopwatch
++import com.simplemobiletools.clock.helpers.CurrentStopwatch
+ import com.simplemobiletools.commons.extensions.*
+ import androidx.appcompat.app.AlertDialog
+ import com.simplemobiletools.clock.commons.extensions.getProperTextColor
+@@ -28,15 +29,22 @@ class EditStopwatchDialog(val activity: SimpleActivity, val stopwatchList: List<
+                             if (binding.editStopwatch.value != "")
+                                 stopwatch.label = binding.editStopwatch.value
+                             else
+-                                stopwatch.label = stopwatch.stopwatchSetNum.toString()
++                                stopwatch.label = ""
+                         }
+-                        activity.stopwatchHelper.insertOrUpdateStopwatch(stopwatchList) { ids ->
+-                            //activity.config.timerLastConfig = stopwatchList
+-                            val firstId = ids.firstOrNull()
+-                            if (firstId != null) { //todo  говнокод
+-                                callback(firstId) // Передаём первый идентификатор в callback
++                        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
++                        activity.stopwatchHelper.insertOrUpdateStopwatch(stopwatchList, onError = { error ->
++                            activity.runOnUiThread {
++                                alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
++                                activity.showErrorToast(error)
++                            }
++                        }) { ids, setId ->
++                            activity.runOnUiThread {
++                                ids.firstOrNull()?.let { firstId ->
++                                    CurrentStopwatch.currentSetId = setId
++                                    callback(firstId)
++                                }
++                                alertDialog.dismiss()
+                             }
+-                            alertDialog.dismiss()
+                         }
+                     }
+                 }
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/extensions/Context.kt b/app/src/main/kotlin/com/simplemobiletools/clock/extensions/Context.kt
+index 311d3e0..63f99d1 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/extensions/Context.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/extensions/Context.kt
+@@ -89,8 +89,7 @@ fun Context.createNewTimer(): Timer {
+ 
+ fun Context.createNewListLap(laps: ArrayList<Lap>, id: Int): ArrayList<Stopwatch> {
+     val stopwatches = ArrayList<Stopwatch>()
+-    //catch (e: Exception) {0}
+-    var size = laps.size - 1
++    val size = laps.size - 1
+     laps.drop(1).forEachIndexed { index, lap ->
+         val stopwatch = Stopwatch(
+             0,
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/fragments/LapFragment.kt b/app/src/main/kotlin/com/simplemobiletools/clock/fragments/LapFragment.kt
+index 003d79f..4f2ced5 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/fragments/LapFragment.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/fragments/LapFragment.kt
+@@ -1,6 +1,7 @@
+ package com.simplemobiletools.clock.fragments
+ 
+-import android.app.AlertDialog
++import androidx.appcompat.app.AlertDialog
++import com.simplemobiletools.clock.R
+ import android.os.Bundle
+ import android.view.LayoutInflater
+ import android.view.View
+@@ -13,7 +14,7 @@ import com.simplemobiletools.clock.dialogs.EditTimerDialog
+ import com.simplemobiletools.clock.extensions.stopwatchHelper
+ import com.simplemobiletools.clock.helpers.DisabledItemChangeAnimator
+ import com.simplemobiletools.clock.models.Stopwatch
+-import com.simplemobiletools.clock.models.TimerEvent
++import com.simplemobiletools.clock.models.StopwatchEvent
+ import com.simplemobiletools.commons.extensions.getProperBackgroundColor
+ import com.simplemobiletools.commons.extensions.getProperTextColor
+ import com.simplemobiletools.commons.extensions.hideKeyboard
+@@ -46,8 +47,9 @@ class LapFragment : Fragment() {
+                 activity?.run {
+                     hideKeyboard()
+                     openWarningDeleteAll{
+-                        lapAdapter.deleteAllItems()
+-                        stopwatchHelper.deleteAllLaps()
++                        stopwatchHelper.deleteAllLaps {
++                            activity?.runOnUiThread { refreshLaps() }
++                        }
+                     }
+                 }
+             }
+@@ -103,7 +105,7 @@ class LapFragment : Fragment() {
+     }
+ 
+     @Subscribe(threadMode = ThreadMode.MAIN)
+-    fun onMessageEvent(event: TimerEvent.Refresh) {
++    fun onMessageEvent(event: StopwatchEvent.Refresh) {
+         refreshLaps()
+     }
+ 
+@@ -132,12 +134,12 @@ class LapFragment : Fragment() {
+ 
+     private fun openWarningDeleteAll(onConfirm: () -> Unit) {
+         AlertDialog.Builder(requireContext())
+-            .setTitle("Предупреждение")
+-            .setMessage("Вы уверены, что хотите удалить все отметки?")
+-            .setPositiveButton("Да") { _, _ ->
++            .setTitle(R.string.confirm_delete_all_laps_title)
++            .setMessage(R.string.confirm_delete_all_laps_message)
++            .setPositiveButton(R.string.delete_laps_action) { _, _ ->
+                 onConfirm() // Выполняем переданную функцию, если пользователь согласился
+             }
+-            .setNegativeButton("Нет", null) // Просто закрываем диалог, если пользователь отказался
++            .setNegativeButton(com.simplemobiletools.commons.R.string.cancel, null) // Просто закрываем диалог, если пользователь отказался
+             .show()
+         /*currentEditAlarmDialog = EditTimerDialog(activity as SimpleActivity, stopwatch) {
+             currentEditAlarmDialog = null
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/fragments/StopwatchFragment.kt b/app/src/main/kotlin/com/simplemobiletools/clock/fragments/StopwatchFragment.kt
+index 716df29..e771f8e 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/fragments/StopwatchFragment.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/fragments/StopwatchFragment.kt
+@@ -7,6 +7,7 @@ import android.os.Bundle
+ import android.view.LayoutInflater
+ import android.view.View
+ import android.view.ViewGroup
++import androidx.appcompat.app.AlertDialog
+ import androidx.fragment.app.Fragment
+ import com.simplemobiletools.clock.R
+ import com.simplemobiletools.clock.activities.SimpleActivity
+@@ -32,6 +33,7 @@ class StopwatchFragment : Fragment() {
+     private lateinit var binding: FragmentStopwatchBinding
+     private var currentEditStopwatchDialog: EditStopwatchDialog? = null
+     private lateinit var lapAdapter: LapAdapter
++    private var resetDialog: AlertDialog? = null
+ 
+     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+         val sorting = requireContext().config.stopwatchLapsSort
+@@ -96,8 +98,8 @@ class StopwatchFragment : Fragment() {
+ 
+         CurrentStopwatch.addUpdateListener(updateListener)
+         updateLaps()
+-        binding.stopwatchSortingIndicatorsHolder.beVisibleIf(CurrentStopwatch.laps.isNotEmpty())
+-        if (CurrentStopwatch.laps.isNotEmpty()) {
++        binding.stopwatchSortingIndicatorsHolder.beVisibleIf(CurrentStopwatch.laps.size > 1)
++        if (CurrentStopwatch.laps.size > 1) {
+             updateSorting(Lap.sorting)
+         }
+ 
+@@ -121,67 +123,71 @@ class StopwatchFragment : Fragment() {
+         }
+     }
+ 
+-    private fun updateStartLapIcon(state: CurrentStopwatch.State) {
++    private fun updateStartLapIcon(state: StopwatchEngine.State) {
+         val drawableId =
+-            if (state == CurrentStopwatch.State.RUNNING) com.simplemobiletools.commons.R.drawable.ic_camera_vector else com.simplemobiletools.commons.R.drawable.ic_play_vector
++            if (state == StopwatchEngine.State.RUNNING) com.simplemobiletools.commons.R.drawable.ic_camera_vector else com.simplemobiletools.commons.R.drawable.ic_play_vector
+         val iconColor = if (requireContext().getProperPrimaryColor() == Color.WHITE) Color.BLACK else Color.WHITE
+         binding.stopwatchPlayLap.setImageDrawable(resources.getColoredDrawableWithColor(drawableId, iconColor))
+     }
+ 
+-    private fun updatePauseResetIcon(state: CurrentStopwatch.State) {
++    private fun updatePauseResetIcon(state: StopwatchEngine.State) {
+         val drawableId =
+-            if (state == CurrentStopwatch.State.RUNNING) com.simplemobiletools.commons.R.drawable.ic_pause_vector else com.simplemobiletools.commons.R.drawable.ic_reset_vector
++            if (state == StopwatchEngine.State.RUNNING) com.simplemobiletools.commons.R.drawable.ic_pause_vector else com.simplemobiletools.commons.R.drawable.ic_reset_vector
+         val iconColor = if (requireContext().getProperPrimaryColor() == Color.WHITE) Color.BLACK else Color.WHITE
+         binding.stopwatchPauseReset.setImageDrawable(resources.getColoredDrawableWithColor(drawableId, iconColor))
+     }
+ 
+     private fun togglePlayLap() {
++        // Start at the button event, not after the notification permission dialog closes.
++        CurrentStopwatch.start()
++        updateLaps()
+         (activity as SimpleActivity).handleNotificationPermission { granted ->
+-            if (granted) {
+-                CurrentStopwatch.toggle(true)
+-                updateLaps()
+-            } else {
++            if (!granted) {
+                 PermissionRequiredDialog(
+                     activity as SimpleActivity,
+-                    com.simplemobiletools.commons.R.string.allow_notifications_reminders, //todo retext
++                    com.simplemobiletools.commons.R.string.allow_notifications_reminders,
+                     { (activity as SimpleActivity).openNotificationSettings() })
+-                CurrentStopwatch.toggle(true)
+-                updateLaps()
+             }
+         }
+-        //CurrentStopwatch.toggle(true)
+-        //updateLaps()
+-
+-        activity?.stopwatchHelper?.getMaxSetIdStopwatch { id -> CurrentStopwatch.currentSetId = id + 1 }
+     }
+ 
+     private fun updateDisplayedText(totalTime: Long, lapTime: Long) {
+         binding.stopwatchTime.text = totalTime.formatStopwatchTime()
+-        if (CurrentStopwatch.laps.isNotEmpty() && lapTime != -1L) {
+-            stopwatchAdapter.updateLastField(lapTime, totalTime)
+-        }
+     }
+ 
+     private fun pauseResetStopwatch() {
+-        if (CurrentStopwatch.state == CurrentStopwatch.State.PAUSED) {
+-            CurrentStopwatch.reset()
+-            //stopwatchHelper.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
+-            updateLaps()
+-            binding.apply {
+-                stopwatchPauseReset.beGone()
+-                stopwatchSave.beGone()
+-                stopwatchTime.text = 0L.formatStopwatchTime()
+-                stopwatchSortingIndicatorsHolder.beInvisible()
+-                stopwatchSave.beInvisible() //todo warning mb
+-            }
++        if (CurrentStopwatch.state == StopwatchEngine.State.PAUSED) {
++            confirmResetStopwatch()
+         }
+-        if (CurrentStopwatch.state == CurrentStopwatch.State.RUNNING) {
++        if (CurrentStopwatch.state == StopwatchEngine.State.RUNNING) {
+             CurrentStopwatch.pause()
+         }
+     }
+ 
++    private fun confirmResetStopwatch() {
++        if (resetDialog?.isShowing == true) return
++        resetDialog = AlertDialog.Builder(requireContext())
++            .setTitle(R.string.confirm_stopwatch_reset_title)
++            .setMessage(R.string.confirm_stopwatch_reset_message)
++            .setPositiveButton(R.string.reset_stopwatch_action) { _, _ ->
++                CurrentStopwatch.reset()
++                updateLaps()
++                binding.stopwatchSortingIndicatorsHolder.beInvisible()
++            }
++            .setNegativeButton(com.simplemobiletools.commons.R.string.cancel, null)
++            .create().also { dialog ->
++                dialog.setOnDismissListener { resetDialog = null }
++                dialog.show()
++            }
++    }
++
++    override fun onDestroyView() {
++        resetDialog?.dismiss()
++        super.onDestroyView()
++    }
++
+     fun pauseStopwatch() {
+-        if (CurrentStopwatch.state == CurrentStopwatch.State.RUNNING) {
++        if (CurrentStopwatch.state == StopwatchEngine.State.RUNNING) {
+             CurrentStopwatch.pause()
+         }
+     }
+@@ -232,41 +238,24 @@ class StopwatchFragment : Fragment() {
+ 
+     fun startLapStopwatch() {
+         when (CurrentStopwatch.state) {
+-            CurrentStopwatch.State.RESETED -> {
++            StopwatchEngine.State.RESETED -> {
+                 togglePlayLap()
+-                CurrentStopwatch.lap()
+-                updateLaps()
+             }
+-            CurrentStopwatch.State.PAUSED -> togglePlayLap()
+-            CurrentStopwatch.State.RUNNING -> {
++            StopwatchEngine.State.PAUSED -> togglePlayLap()
++            StopwatchEngine.State.RUNNING -> {
+                 CurrentStopwatch.lap()
+                 binding.stopwatchSortingIndicatorsHolder.beVisible()
+                 updateLaps()
+-                //stopwatchHelper.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
+             }
+             else -> {}
+         } // todo add pause
+     }
+ 
+-    fun setCurrentIdStopwatch() {
+-        activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
+-    }
+-
+-    fun keyUpStartResetStopwatch() {
++    fun keyUpStartLapStopwatch() {
+         when (CurrentStopwatch.state) {
+-            CurrentStopwatch.State.RESETED -> togglePlayLap()
+-            CurrentStopwatch.State.PAUSED -> {
+-                CurrentStopwatch.reset()
+-                updateLaps()
+-                binding.apply {
+-                    stopwatchPauseReset.beGone()
+-                    stopwatchSave.beGone()
+-                    stopwatchTime.text = 0L.formatStopwatchTime()
+-                    stopwatchSortingIndicatorsHolder.beInvisible()
+-                    stopwatchSave.beInvisible() //todo warning mb
+-                }
+-            }
+-            CurrentStopwatch.State.RUNNING -> {
++            StopwatchEngine.State.RESETED -> togglePlayLap()
++            StopwatchEngine.State.PAUSED -> togglePlayLap()
++            StopwatchEngine.State.RUNNING -> {
+                 CurrentStopwatch.lap()
+                 binding.stopwatchSortingIndicatorsHolder.beVisible()
+                 updateLaps()
+@@ -280,20 +269,20 @@ class StopwatchFragment : Fragment() {
+             updatePrimaryColor()
+             updateBackgroundColor(requireContext().getProperBackgroundColor())
+             updateTextColor(requireContext().getProperTextColor())
+-            updateItems(CurrentStopwatch.laps)
++            updateItems(ArrayList(CurrentStopwatch.laps.drop(1)))
+             binding.stopwatchList.post {
+                 scrollToLastLap()
+                 stopwatchAdapter.lastEditLapText?.requestFocus()
+             }
+-            binding.stopwatchSave.beVisibleIf(CurrentStopwatch.laps.isNotEmpty())
++            binding.stopwatchSave.beVisibleIf(CurrentStopwatch.laps.size > 1)
+         }
+-        activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
+     }
+ 
+     private fun saveLaps() {
+         activity?.run {
+             hideKeyboard()
+-            openEditListLap(createNewListLap(CurrentStopwatch.laps, CurrentStopwatch.currentSetId))
++            val completedLaps = createNewListLap(CurrentStopwatch.laps, CurrentStopwatch.currentSetId)
++            if (completedLaps.isNotEmpty()) openEditListLap(completedLaps)
+         }
+     }
+ 
+@@ -301,7 +290,6 @@ class StopwatchFragment : Fragment() {
+         currentEditStopwatchDialog = EditStopwatchDialog(activity as SimpleActivity, stopwatchList) {
+             currentEditStopwatchDialog = null
+         }
+-        //activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
+     }
+ 
+     private val updateListener = object : CurrentStopwatch.UpdateListener {
+@@ -311,11 +299,11 @@ class StopwatchFragment : Fragment() {
+             }
+         }
+ 
+-        override fun onStateChanged(state: CurrentStopwatch.State) {
++        override fun onStateChanged(state: StopwatchEngine.State) {
+             activity?.runOnUiThread {
+                 updateStartLapIcon(state)
+                 updatePauseResetIcon(state)
+-                binding.stopwatchPauseReset.beVisibleIf(state != CurrentStopwatch.State.RESETED)
++                binding.stopwatchPauseReset.beVisibleIf(state != StopwatchEngine.State.RESETED)
+             }
+         }
+     }
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/helpers/CurrentStopwatch.kt b/app/src/main/kotlin/com/simplemobiletools/clock/helpers/CurrentStopwatch.kt
+index 26b5f6e..957d263 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/helpers/CurrentStopwatch.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/helpers/CurrentStopwatch.kt
+@@ -1,128 +1,93 @@
+ package com.simplemobiletools.clock.helpers
+ 
++import android.content.Context
++import android.os.Handler
++import android.os.Looper
+ import android.os.SystemClock
++import androidx.annotation.MainThread
++import com.simplemobiletools.clock.helpers.StopwatchEngine.State
+ import com.simplemobiletools.clock.models.Lap
+-import java.util.Timer
+-import java.util.TimerTask
+-import java.util.concurrent.CopyOnWriteArraySet
+-
+-private const val UPDATE_INTERVAL = 10L
+ 
++/** Commands and display callbacks run on the main thread, avoiding timer/UI data races. */
++@MainThread
+ object CurrentStopwatch {
++    private const val UPDATE_INTERVAL = 10L
++    private val engine = StopwatchEngine(SystemClock::elapsedRealtime)
++    private val handler = Handler(Looper.getMainLooper())
++    private val updateListeners = LinkedHashSet<UpdateListener>()
++    private var store: StopwatchSnapshotStore? = null
+ 
+-    private var updateTimer = Timer()
+-    private var uptimeAtStart = 0L
+-    private var totalTicks = 0L
+-    private var lapTicks = 0L
+-    private var currentLap = 1
+-    var currentSetId = 0
+-    val laps = ArrayList<Lap>()
+-    var state = State.RESETED
+-        private set(value) {
+-            field = value
+-            for (listener in updateListeners) {
+-                listener.onStateChanged(value)
+-            }
++    val state: State get() = engine.state
++    val laps: ArrayList<Lap> get() = engine.laps()
++    var currentSetId: Int
++        get() = engine.currentSetId
++        set(value) {
++            engine.currentSetId = value
++            saveState()
+         }
+-    private var updateListeners = CopyOnWriteArraySet<UpdateListener>()
+ 
+-    fun reset() {
+-        updateTimer.cancel()
+-        state = State.RESETED
+-        currentLap = 1
+-        totalTicks = 0
+-        lapTicks = 0
+-        laps.clear()
++    fun initialize(context: Context) {
++        if (store != null) return
++        store = StopwatchSnapshotStore(context.applicationContext)
++        store?.load()?.let { restored ->
++            runCatching { engine.restore(restored.snapshot, restored.sameBoot) }
++                .onFailure { engine.reset() }
++        }
+     }
+ 
+-    fun lap() {
+-        if (laps.isNotEmpty()) {
+-            laps.first().apply {
+-                lapTime = lapTicks
+-                totalTime = totalTicks
+-                textTime = ""
+-            }
+-        }
+-        val lap = Lap(currentLap++, totalTicks, totalTicks, "")
+-        laps.add(0, lap)
+-        lapTicks = 0
++    fun start() = change { engine.start() }
++    fun pause() = change { engine.pause() }
++    fun lap() = change { engine.lap() }
++    fun reset() = change { engine.reset() }
++
++    fun updateLapText(id: Int, text: String) {
++        engine.updateLapText(id, text)
++        saveState()
+     }
+ 
+-    fun toggle(setUptimeAtStart: Boolean) {
+-        when (state) {
+-            State.RESETED -> {
+-                state = State.RUNNING
+-                updateTimer = buildUpdateTimer()
+-                if (setUptimeAtStart) {
+-                    uptimeAtStart = SystemClock.uptimeMillis()
+-                }
+-            }
+-            State.PAUSED -> {
+-                state = State.RUNNING
+-                updateTimer = buildUpdateTimer()
+-                if (setUptimeAtStart) {
+-                    uptimeAtStart = SystemClock.uptimeMillis()
+-                }
+-            }
+-            else -> {}
+-        }
++    fun saveState() {
++        store?.save(engine.snapshot())
+     }
+ 
+-    fun pause() {
+-        state = State.PAUSED
+-        val totalDuration = SystemClock.uptimeMillis() - uptimeAtStart + totalTicks
+-        updateTimer.cancel()
+-        for (listener in updateListeners) {
+-            listener.onUpdate(totalDuration, -1)
+-        }
++    private fun change(action: () -> Unit) {
++        val oldState = state
++        action()
++        saveState()
++        notifyListeners(oldState != state)
++        scheduleUpdate()
++    }
++
++    fun addUpdateListener(listener: UpdateListener) {
++        updateListeners.add(listener)
++        listener.onStateChanged(state)
++        val time = engine.reading()
++        listener.onUpdate(time.totalTime, time.lapTime)
++        scheduleUpdate()
+     }
+ 
+-    /**
+-     * Add a update listener to the stopwatch. The listener gets the current state
+-     * immediately after adding. To avoid memory leaks the listener should be removed
+-     * from the stopwatch.
+-     * @param updateListener the listener
+-     */
+-    fun addUpdateListener(updateListener: UpdateListener) {
+-        updateListeners.add(updateListener)
+-        updateListener.onUpdate(
+-            totalTicks,
+-            lapTicks,
+-        )
+-        updateListener.onStateChanged(state)
++    fun removeUpdateListener(listener: UpdateListener) {
++        updateListeners.remove(listener)
++        scheduleUpdate()
+     }
+ 
+-    /**
+-     * Remove the listener from the stopwatch
+-     * @param updateListener the listener
+-     */
+-    fun removeUpdateListener(updateListener: UpdateListener) {
+-        updateListeners.remove(updateListener)
++    private fun notifyListeners(stateChanged: Boolean = false) {
++        val time = engine.reading()
++        updateListeners.toList().forEach { listener ->
++            if (stateChanged) listener.onStateChanged(state)
++            listener.onUpdate(time.totalTime, time.lapTime)
++        }
+     }
+ 
+-    private fun buildUpdateTimer(): Timer {
+-        return Timer().apply {
+-            scheduleAtFixedRate(object : TimerTask() {
+-                override fun run() {
+-                    if (state == State.RUNNING) {
+-                        for (listener in updateListeners) {
+-                            listener.onUpdate(
+-                                totalTicks,
+-                                lapTicks
+-                            )
+-                        }
+-                        totalTicks += UPDATE_INTERVAL
+-                        lapTicks += UPDATE_INTERVAL
+-                    }
+-                }
+-            }, 0, UPDATE_INTERVAL)
++    private val update = object : Runnable {
++        override fun run() {
++            notifyListeners()
++            scheduleUpdate()
+         }
+     }
+ 
+-    enum class State {
+-        RUNNING,
+-        PAUSED,
+-        RESETED
++    private fun scheduleUpdate() {
++        handler.removeCallbacks(update)
++        if (state == State.RUNNING && updateListeners.isNotEmpty()) handler.postDelayed(update, UPDATE_INTERVAL)
+     }
+ 
+     interface UpdateListener {
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchEngine.kt b/app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchEngine.kt
+new file mode 100644
+index 0000000..ab3ed02
+--- /dev/null
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchEngine.kt
+@@ -0,0 +1,105 @@
++package com.simplemobiletools.clock.helpers
++
++import com.simplemobiletools.clock.models.Lap
++
++/** Durations come from elapsed realtime, never from the number of display callbacks. */
++class StopwatchEngine(private val elapsedRealtime: () -> Long) {
++    enum class State { RUNNING, PAUSED, RESETED }
++
++    data class Reading(val totalTime: Long, val lapTime: Long)
++    data class Snapshot(
++        val state: State,
++        val totalTime: Long,
++        val savedAtElapsedRealtime: Long,
++        val lapStartTime: Long,
++        val nextLapId: Int,
++        val currentSetId: Int,
++        val laps: List<Lap>,
++    )
++
++    var state = State.RESETED
++        private set
++    var currentSetId = 0
++    private var accumulatedTime = 0L
++    private var runningSince = 0L
++    private var lapStartTime = 0L
++    private var nextLapId = 1
++    private val lapItems = ArrayList<Lap>()
++
++    fun reading(): Reading {
++        val total = totalTimeAt(elapsedRealtime())
++        return Reading(total, total - lapStartTime)
++    }
++
++    private fun totalTimeAt(now: Long) = accumulatedTime + if (state == State.RUNNING) {
++        (now - runningSince).coerceAtLeast(0L)
++    } else 0L
++
++    /** The first row is the live lap; completed laps follow it in reverse order. */
++    fun laps(): ArrayList<Lap> = copyLaps(reading())
++
++    private fun copyLaps(time: Reading) = ArrayList(lapItems.mapIndexed { index, lap ->
++        if (index == 0) lap.copy(lapTime = time.lapTime, totalTime = time.totalTime) else lap.copy()
++    })
++
++    fun start() {
++        if (state == State.RUNNING) return
++        if (state == State.RESETED) lapItems.add(Lap(nextLapId++, 0L, 0L, ""))
++        runningSince = elapsedRealtime()
++        state = State.RUNNING
++    }
++
++    fun pause() {
++        if (state != State.RUNNING) return
++        accumulatedTime = reading().totalTime
++        state = State.PAUSED
++    }
++
++    fun lap() {
++        if (state != State.RUNNING) return
++        val time = reading()
++        lapItems.first().apply {
++            lapTime = time.lapTime
++            totalTime = time.totalTime
++        }
++        lapStartTime = time.totalTime
++        lapItems.add(0, Lap(nextLapId++, 0L, time.totalTime, ""))
++    }
++
++    fun updateLapText(id: Int, text: String) {
++        lapItems.firstOrNull { it.id == id }?.textTime = text
++    }
++
++    fun reset() {
++        state = State.RESETED
++        accumulatedTime = 0L
++        runningSince = 0L
++        lapStartTime = 0L
++        nextLapId = 1
++        currentSetId = 0
++        lapItems.clear()
++    }
++
++    fun snapshot(): Snapshot {
++        val now = elapsedRealtime()
++        val total = totalTimeAt(now)
++        return Snapshot(state, total, now, lapStartTime, nextLapId, currentSetId, copyLaps(Reading(total, total - lapStartTime)))
++    }
++
++    /** After a reboot preserve the last known duration, without mixing clocks from two boots. */
++    fun restore(snapshot: Snapshot, sameBoot: Boolean) {
++        require(snapshot.totalTime >= 0L && snapshot.lapStartTime in 0L..snapshot.totalTime)
++        require(snapshot.nextLapId > (snapshot.laps.maxOfOrNull { it.id } ?: 0))
++        require(snapshot.state == State.RESETED || snapshot.laps.isNotEmpty())
++        state = if (snapshot.state == State.RUNNING && (!sameBoot || elapsedRealtime() < snapshot.savedAtElapsedRealtime)) {
++            State.PAUSED
++        } else snapshot.state
++        accumulatedTime = snapshot.totalTime
++        runningSince = snapshot.savedAtElapsedRealtime
++        lapStartTime = snapshot.lapStartTime
++        nextLapId = snapshot.nextLapId
++        currentSetId = snapshot.currentSetId
++        lapItems.clear()
++        lapItems.addAll(snapshot.laps.map { it.copy() })
++    }
++}
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchHelper.kt b/app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchHelper.kt
+index cacc4f3..9f99773 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchHelper.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchHelper.kt
+@@ -1,9 +1,12 @@
+ package com.simplemobiletools.clock.helpers
+ 
+ import android.content.Context
++import android.os.Handler
++import android.os.Looper
+ import com.simplemobiletools.clock.extensions.stopwatchDb
+ import com.simplemobiletools.clock.models.Stopwatch
+ import com.simplemobiletools.commons.helpers.ensureBackgroundThread
++import com.simplemobiletools.commons.extensions.showErrorToast
+ 
+ class StopwatchHelper(val context: Context) {
+     private val stopwatchDao = context.stopwatchDb
+@@ -28,11 +31,20 @@ class StopwatchHelper(val context: Context) {
+         }
+     }
+ 
+-    fun insertOrUpdateStopwatch(stopwatchList: List<Stopwatch>, callback: (ids: List<Long>) -> Unit = {}) {
++    fun insertOrUpdateStopwatch(
++        stopwatchList: List<Stopwatch>,
++        onError: (Exception) -> Unit = { error ->
++            Handler(Looper.getMainLooper()).post { context.showErrorToast(error) }
++        },
++        callback: (ids: List<Long>, setId: Int) -> Unit = { _, _ -> },
++    ) {
+         ensureBackgroundThread {
+-            stopwatchDao.deleteSet(stopwatchList[0].stopwatchSetNum)
+-            val ids = stopwatchDao.insertOrUpdateStopwatch(stopwatchList)
+-            callback.invoke(ids)
++            try {
++                val (setId, ids) = stopwatchDao.saveSet(stopwatchList)
++                callback.invoke(ids, setId)
++            } catch (error: Exception) {
++                onError(error)
++            }
+         }
+     }
+ 
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchSnapshotStore.kt b/app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchSnapshotStore.kt
+new file mode 100644
+index 0000000..e0b6844
+--- /dev/null
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/helpers/StopwatchSnapshotStore.kt
+@@ -0,0 +1,70 @@
++package com.simplemobiletools.clock.helpers
++
++import android.content.Context
++import android.os.SystemClock
++import android.provider.Settings
++import com.simplemobiletools.clock.models.Lap
++import org.json.JSONArray
++import org.json.JSONObject
++import kotlin.math.abs
++
++class StopwatchSnapshotStore(private val context: Context) {
++    private val preferences = context.getSharedPreferences("current_stopwatch", Context.MODE_PRIVATE)
++
++    data class Restored(val snapshot: StopwatchEngine.Snapshot, val sameBoot: Boolean)
++
++    fun save(snapshot: StopwatchEngine.Snapshot) {
++        if (snapshot.state == StopwatchEngine.State.RESETED) {
++            preferences.edit().remove("snapshot").apply()
++            return
++        }
++        val laps = JSONArray()
++        snapshot.laps.forEach { lap ->
++            laps.put(JSONObject().apply {
++                put("id", lap.id)
++                put("lapTime", lap.lapTime)
++                put("totalTime", lap.totalTime)
++                put("text", lap.textTime)
++            })
++        }
++        val json = JSONObject().apply {
++            put("version", 1)
++            put("state", snapshot.state.name)
++            put("totalTime", snapshot.totalTime)
++            put("savedAt", snapshot.savedAtElapsedRealtime)
++            put("lapStartTime", snapshot.lapStartTime)
++            put("nextLapId", snapshot.nextLapId)
++            put("setId", snapshot.currentSetId)
++            put("laps", laps)
++            put("bootCount", bootCount())
++            put("bootEpoch", bootEpoch())
++        }
++        preferences.edit().putString("snapshot", json.toString()).apply()
++    }
++
++    fun load(): Restored? = runCatching {
++        val json = JSONObject(preferences.getString("snapshot", null) ?: return@runCatching null)
++        require(json.getInt("version") == 1)
++        val rows = json.getJSONArray("laps")
++        val laps = (0 until rows.length()).map { index ->
++            val lap = rows.getJSONObject(index)
++            Lap(lap.getInt("id"), lap.getLong("lapTime"), lap.getLong("totalTime"), lap.getString("text"))
++        }
++        val savedBoot = json.getInt("bootCount")
++        val currentBoot = bootCount()
++        // Android 6 may not expose BOOT_COUNT; an epoch estimate is a conservative fallback.
++        val sameBoot = if (savedBoot >= 0 && currentBoot >= 0) savedBoot == currentBoot
++            else abs(json.getLong("bootEpoch") - bootEpoch()) < 60_000L
++        Restored(
++            StopwatchEngine.Snapshot(
++                StopwatchEngine.State.valueOf(json.getString("state")),
++                json.getLong("totalTime"), json.getLong("savedAt"), json.getLong("lapStartTime"),
++                json.getInt("nextLapId"), json.getInt("setId"), laps,
++            ),
++            sameBoot,
++        )
++    }.getOrNull()
++
++    private fun bootCount() = Settings.Global.getInt(context.contentResolver, "boot_count", -1)
++    private fun bootEpoch() = System.currentTimeMillis() - SystemClock.elapsedRealtime()
++}
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/interfaces/StopwatchDao.kt b/app/src/main/kotlin/com/simplemobiletools/clock/interfaces/StopwatchDao.kt
+index 688e8bd..4d31024 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/interfaces/StopwatchDao.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/interfaces/StopwatchDao.kt
+@@ -36,6 +36,18 @@ interface StopwatchDao {
+     @Insert(onConflict = OnConflictStrategy.REPLACE)
+     fun insertOrUpdateStopwatch(stopwatchList: List<Stopwatch>): List<Long>
+ 
++    /** Allocate the set number and replace its rows atomically, keeping an existing set on failure. */
++    @Transaction
++    fun saveSet(stopwatchList: List<Stopwatch>): Pair<Int, List<Long>> {
++        val first = stopwatchList.firstOrNull() ?: return 0 to emptyList()
++        val setId = first.stopwatchSetNum.takeIf { it > 0 } ?: ((getMaxSetNum() ?: 0) + 1)
++        val rows = stopwatchList.map {
++            it.copy(stopwatchSetNum = setId, label = it.label.ifBlank { setId.toString() })
++        }
++        deleteSet(setId)
++        return setId to insertOrUpdateStopwatch(rows)
++    }
++
+     @Query("DELETE FROM laps WHERE id=:id")
+     fun deleteLap(id: Int)
+ 
+diff --git a/app/src/main/kotlin/com/simplemobiletools/clock/services/StopwatchService.kt b/app/src/main/kotlin/com/simplemobiletools/clock/services/StopwatchService.kt
+index e2556ff..d4f39e2 100644
+--- a/app/src/main/kotlin/com/simplemobiletools/clock/services/StopwatchService.kt
++++ b/app/src/main/kotlin/com/simplemobiletools/clock/services/StopwatchService.kt
+@@ -8,6 +8,7 @@ import android.content.Intent
+ import android.os.Handler
+ import android.os.IBinder
+ import android.os.Looper
++import android.os.SystemClock
+ import androidx.core.app.NotificationCompat
+ import androidx.core.app.ServiceCompat
+ import androidx.core.content.ContextCompat
+@@ -16,7 +17,7 @@ import com.simplemobiletools.clock.extensions.getFormattedDuration
+ import com.simplemobiletools.clock.extensions.getOpenStopwatchTabIntent
+ import com.simplemobiletools.clock.helpers.STOPWATCH_RUNNING_NOTIF_ID
+ import com.simplemobiletools.clock.helpers.CurrentStopwatch
+-import com.simplemobiletools.clock.helpers.CurrentStopwatch.State
++import com.simplemobiletools.clock.helpers.StopwatchEngine.State
+ import com.simplemobiletools.clock.helpers.CurrentStopwatch.UpdateListener
+ import com.simplemobiletools.commons.extensions.showErrorToast
+ import com.simplemobiletools.commons.helpers.isOreoPlus
+@@ -102,23 +103,24 @@ class StopwatchService : Service() {
+         private var lastUpdateTime = 0L
+         override fun onUpdate(totalTime: Long, lapTime: Long) {
+             if (!isStopping && shouldNotificationBeUpdated()) {
+-                lastUpdateTime = System.currentTimeMillis()
++                lastUpdateTime = SystemClock.elapsedRealtime()
+                 updateNotification(totalTime)
+             }
+         }
+ 
+         override fun onStateChanged(state: State) {
+-            if (state == State.RESETED) {
++            if (state != State.RUNNING) {
+                 stopForegroundService()
+             }
+         }
+ 
+         private fun shouldNotificationBeUpdated(): Boolean {
+-            return (System.currentTimeMillis() - lastUpdateTime) > MIN_NOTIFICATION_UPDATE_INTERVAL
++            return (SystemClock.elapsedRealtime() - lastUpdateTime) > MIN_NOTIFICATION_UPDATE_INTERVAL
+         }
+     }
+ 
+     private fun stopForegroundService() {
++        isStopping = true
+         ServiceCompat.stopForeground(this@StopwatchService, ServiceCompat.STOP_FOREGROUND_REMOVE)
+         stopSelf()
+     }
+diff --git a/app/src/main/res/values-ru/stopwatch_actions.xml b/app/src/main/res/values-ru/stopwatch_actions.xml
+new file mode 100644
+index 0000000..28287a0
+--- /dev/null
++++ b/app/src/main/res/values-ru/stopwatch_actions.xml
+@@ -0,0 +1,11 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="confirm_stopwatch_reset_title">Сбросить секундомер?</string>
++    <string name="confirm_stopwatch_reset_message">Текущее время и несохранённые отсечки будут удалены. Сохранённые результаты останутся в истории.</string>
++    <string name="reset_stopwatch_action">Сбросить</string>
++    <string name="confirm_delete_laps_title">Удалить отсечки?</string>
++    <string name="confirm_delete_laps_message">Удалить выбранные отсечки (%1$d)? Это действие нельзя отменить.</string>
++    <string name="confirm_delete_all_laps_title">Удалить все сохранённые отсечки?</string>
++    <string name="confirm_delete_all_laps_message">Все сохранённые результаты будут удалены из истории. Это действие нельзя отменить.</string>
++    <string name="delete_laps_action">Удалить</string>
++</resources>
+diff --git a/app/src/main/res/values/stopwatch_actions.xml b/app/src/main/res/values/stopwatch_actions.xml
+new file mode 100644
+index 0000000..5d57256
+--- /dev/null
++++ b/app/src/main/res/values/stopwatch_actions.xml
+@@ -0,0 +1,11 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="confirm_stopwatch_reset_title">Reset stopwatch?</string>
++    <string name="confirm_stopwatch_reset_message">The current time and unsaved laps will be cleared. Saved results will remain in history.</string>
++    <string name="reset_stopwatch_action">Reset</string>
++    <string name="confirm_delete_laps_title">Delete laps?</string>
++    <string name="confirm_delete_laps_message">Delete the selected laps (%1$d)? This cannot be undone.</string>
++    <string name="confirm_delete_all_laps_title">Delete all saved laps?</string>
++    <string name="confirm_delete_all_laps_message">All saved results will be deleted from history. This cannot be undone.</string>
++    <string name="delete_laps_action">Delete</string>
++</resources>
+diff --git a/app/src/preview/res/values-ru/strings.xml b/app/src/preview/res/values-ru/strings.xml
+new file mode 100644
+index 0000000..d92498e
+--- /dev/null
++++ b/app/src/preview/res/values-ru/strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="app_name">Сыч-секундомер 2.0</string>
++    <string name="app_launcher_name">Сыч-секундомер 2.0</string>
++</resources>
+diff --git a/app/src/preview/res/values/strings.xml b/app/src/preview/res/values/strings.xml
+new file mode 100644
+index 0000000..3b83813
+--- /dev/null
++++ b/app/src/preview/res/values/strings.xml
+@@ -0,0 +1,5 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="app_name">Sych Stopwatch 2.0</string>
++    <string name="app_launcher_name">Sych Stopwatch 2.0</string>
++</resources>
+diff --git a/app/src/test/kotlin/com/simplemobiletools/clock/activities/StopwatchControlsTest.kt b/app/src/test/kotlin/com/simplemobiletools/clock/activities/StopwatchControlsTest.kt
+new file mode 100644
+index 0000000..0131740
+--- /dev/null
++++ b/app/src/test/kotlin/com/simplemobiletools/clock/activities/StopwatchControlsTest.kt
+@@ -0,0 +1,81 @@
++package com.simplemobiletools.clock.activities
++
++import android.app.Application
++import android.content.DialogInterface
++import android.os.Looper
++import android.view.KeyEvent
++import android.widget.ImageView
++import androidx.appcompat.app.AlertDialog
++import com.simplemobiletools.clock.R
++import com.simplemobiletools.clock.adapters.StopwatchAdapter
++import com.simplemobiletools.clock.helpers.CurrentStopwatch
++import com.simplemobiletools.clock.helpers.StopwatchEngine
++import com.simplemobiletools.commons.views.MyRecyclerView
++import org.junit.Assert.*
++import org.junit.Test
++import org.junit.runner.RunWith
++import org.robolectric.Robolectric
++import org.robolectric.RobolectricTestRunner
++import org.robolectric.Shadows.shadowOf
++import org.robolectric.annotation.Config
++import org.robolectric.shadows.ShadowDialog
++import org.robolectric.shadows.ShadowSystemClock
++import java.time.Duration
++
++@RunWith(RobolectricTestRunner::class)
++@Config(application = Application::class, sdk = [28])
++class StopwatchControlsTest {
++    @Test fun volumeKeysResumeTheTimerLapsFreezeImmediatelyAndResetRequiresConfirmation() {
++        CurrentStopwatch.reset()
++        val controller = Robolectric.buildActivity(MainActivity::class.java).setup().visible()
++        val activity = controller.get()
++        shadowOf(Looper.getMainLooper()).idle()
++        try {
++            val list = activity.findViewById<MyRecyclerView>(R.id.stopwatch_list)
++            val adapter = list.adapter as StopwatchAdapter
++            fun volumeUp() = activity.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_VOLUME_UP))
++            fun volumeDown() = activity.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_VOLUME_DOWN))
++
++            volumeUp()
++            assertEquals(StopwatchEngine.State.RUNNING, CurrentStopwatch.state)
++            assertEquals(0, adapter.itemCount)
++            ShadowSystemClock.advanceBy(Duration.ofMillis(1234))
++            volumeUp()
++            assertEquals(1, adapter.itemCount)
++            val recorded = adapter.laps.single().copy()
++            assertTrue(recorded.totalTime in 1234L..1240L)
++            assertEquals(recorded.totalTime, recorded.lapTime)
++            ShadowSystemClock.advanceBy(Duration.ofMillis(2000))
++            shadowOf(Looper.getMainLooper()).idle()
++            assertEquals(recorded, adapter.laps.single())
++
++            volumeDown()
++            assertEquals(StopwatchEngine.State.PAUSED, CurrentStopwatch.state)
++            ShadowSystemClock.advanceBy(Duration.ofSeconds(5))
++            volumeUp()
++            assertEquals(StopwatchEngine.State.RUNNING, CurrentStopwatch.state)
++            assertEquals(1, adapter.itemCount)
++            volumeDown()
++            val beforeReset = CurrentStopwatch.laps
++            val reset = activity.findViewById<ImageView>(R.id.stopwatch_pause_reset)
++            reset.performClick()
++            assertEquals(beforeReset, CurrentStopwatch.laps)
++            val cancelled = ShadowDialog.getLatestDialog() as AlertDialog
++            cancelled.getButton(DialogInterface.BUTTON_NEGATIVE).performClick()
++            shadowOf(Looper.getMainLooper()).idle()
++            assertEquals(StopwatchEngine.State.PAUSED, CurrentStopwatch.state)
++            assertEquals(beforeReset, CurrentStopwatch.laps)
++
++            reset.performClick()
++            val confirmed = ShadowDialog.getLatestDialog() as AlertDialog
++            confirmed.getButton(DialogInterface.BUTTON_POSITIVE).performClick()
++            shadowOf(Looper.getMainLooper()).idle()
++            assertEquals(StopwatchEngine.State.RESETED, CurrentStopwatch.state)
++            assertTrue(CurrentStopwatch.laps.isEmpty())
++            assertEquals(0, adapter.itemCount)
++        } finally {
++            controller.pause().stop().destroy()
++            CurrentStopwatch.reset()
++        }
++    }
++}
+diff --git a/app/src/test/kotlin/com/simplemobiletools/clock/databases/StopwatchDatabaseTest.kt b/app/src/test/kotlin/com/simplemobiletools/clock/databases/StopwatchDatabaseTest.kt
+new file mode 100644
+index 0000000..91eb8ef
+--- /dev/null
++++ b/app/src/test/kotlin/com/simplemobiletools/clock/databases/StopwatchDatabaseTest.kt
+@@ -0,0 +1,142 @@
++package com.simplemobiletools.clock.databases
++
++import android.app.Application
++import android.content.Context
++import android.database.sqlite.SQLiteDatabase
++import androidx.room.Room
++import com.simplemobiletools.clock.models.Stopwatch
++import org.json.JSONObject
++import org.junit.Assert.*
++import org.junit.Test
++import org.junit.runner.RunWith
++import org.robolectric.RobolectricTestRunner
++import org.robolectric.RuntimeEnvironment
++import org.robolectric.annotation.Config
++import java.util.UUID
++
++@RunWith(RobolectricTestRunner::class)
++@Config(application = Application::class, sdk = [28])
++class StopwatchDatabaseTest {
++    private val context: Context get() = RuntimeEnvironment.getApplication()
++
++    private fun oldDatabase(version: Int, legacyLaps: Boolean = false): String {
++        val name = "migration-${UUID.randomUUID()}.db"
++        val file = context.getDatabasePath(name)
++        file.parentFile!!.mkdirs()
++        val schema = javaClass.classLoader!!.getResourceAsStream(
++            "com.simplemobiletools.clock.databases.AppDatabase/$version.json"
++        )!!.bufferedReader().use { it.readText() }
++        val entities = JSONObject(schema).getJSONObject("database").getJSONArray("entities")
++        SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
++            for (index in 0 until entities.length()) {
++                val entity = entities.getJSONObject(index)
++                var sql = entity.getString("createSql").replace("\${TABLE_NAME}", entity.getString("tableName"))
++                if (legacyLaps && entity.getString("tableName") == "laps") {
++                    sql = sql.replace(", `millisecondsLag` INTEGER NOT NULL", "")
++                        .replace(", `sequence` INTEGER NOT NULL", "")
++                }
++                db.execSQL(sql)
++            }
++            val oneShot = if (version >= 2) ",oneShot" else ""
++            val oneShotValue = if (version >= 2) ",0" else ""
++            db.execSQL("INSERT INTO timers (id,seconds,state,vibrate,soundUri,soundTitle,label,createdAt$oneShot) VALUES (1,60,'{}',0,'','','keep timer',1$oneShotValue)")
++            if (version == 3) {
++                if (legacyLaps) {
++                    db.execSQL("INSERT INTO laps VALUES (1,1,1234,'keep text','keep label',1,NULL)")
++                    db.execSQL("INSERT INTO laps VALUES (2,1,2000,'second','keep label',1,NULL)")
++                } else {
++                    db.execSQL("INSERT INTO laps VALUES (1,1,1234,1234,'keep text','keep label',1,NULL,1)")
++                }
++            }
++            db.version = version
++        }
++        return name
++    }
++
++    private fun open(name: String) = Room.databaseBuilder(context, AppDatabase::class.java, name)
++        .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
++        .allowMainThreadQueries()
++        .build()
++
++    @Test fun migrateVersionOnePreservesTimerAndCreatesUsableLaps() = verifyMigration(1)
++    @Test fun migrateVersionTwoPreservesTimerAndCreatesUsableLaps() = verifyMigration(2)
++
++    private fun verifyMigration(version: Int) {
++        val name = oldDatabase(version)
++        open(name).withDatabase { db ->
++            val connection = db.openHelper.writableDatabase // Room validates the migrated schema here.
++            connection.query("SELECT label FROM timers WHERE id=1").use {
++                assertTrue(it.moveToFirst())
++                assertEquals("keep timer", it.getString(0))
++            }
++            assertTrue(db.StopwatchDao().getLaps().isEmpty())
++            val (setId, ids) = db.StopwatchDao().saveSet(listOf(lap()))
++            assertEquals(1, setId)
++            assertEquals(1, ids.size)
++        }
++        context.deleteDatabase(name)
++    }
++
++    @Test fun versionThreeHistoryOpensWithoutDestructiveMigration() {
++        val name = oldDatabase(3)
++        open(name).withDatabase { db ->
++            val saved = db.StopwatchDao().getLaps().single()
++            assertEquals("keep text", saved.text)
++            assertEquals("keep label", saved.label)
++            assertEquals(1234L, saved.milliseconds)
++        }
++        context.deleteDatabase(name)
++    }
++
++    @Test fun olderVersionThreeLayoutGetsMissingColumnsWithoutLosingHistory() {
++        val name = oldDatabase(3, legacyLaps = true)
++        open(name).withDatabase { db ->
++            val saved = db.StopwatchDao().getLaps()
++            assertEquals(listOf("keep text", "second"), saved.map { it.text })
++            assertEquals(listOf(1234L, 766L), saved.map { it.millisecondsLag })
++            assertEquals(listOf(1, 2), saved.map { it.sequence })
++        }
++        context.deleteDatabase(name)
++    }
++
++    @Test fun savingAgainReplacesTheSameSetAndAllocatesANewNumberOnlyForANewMeasurement() {
++        Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).allowMainThreadQueries().build().withDatabase { db ->
++            val dao = db.StopwatchDao()
++            assertEquals(0 to emptyList<Long>(), dao.saveSet(emptyList()))
++            val (setId, _) = dao.saveSet(listOf(lap()))
++            assertEquals("1", dao.getLaps().single().label)
++            dao.saveSet(listOf(lap().copy(stopwatchSetNum = setId, text = "updated")))
++            assertEquals(1, dao.getLaps().size)
++            assertEquals("updated", dao.getLaps().single().text)
++            assertEquals(2, dao.saveSet(listOf(lap())).first)
++            assertEquals(2, dao.getLaps().size)
++        }
++    }
++
++    @Test fun replacementRollsBackDeletionIfAnInsertFails() {
++        Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).allowMainThreadQueries().build().withDatabase { db ->
++            val dao = db.StopwatchDao()
++            val setId = dao.saveSet(listOf(lap().copy(text = "original"))).first
++            db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_new_laps BEFORE INSERT ON laps BEGIN SELECT RAISE(ABORT, 'test failure'); END")
++            try {
++                dao.saveSet(listOf(lap().copy(stopwatchSetNum = setId, text = "replacement")))
++                fail("Expected insert failure")
++            } catch (_: android.database.SQLException) {
++                assertEquals("original", dao.getLaps().single().text)
++            }
++        }
++    }
++
++    private inline fun <T> AppDatabase.withDatabase(block: (AppDatabase) -> T): T {
++        return try {
++            block(this)
++        } finally {
++            close()
++        }
++    }
++
++    private fun lap() = Stopwatch(
++        stopwatchSetNum = 0, milliseconds = 1234L, millisecondsLag = 1234L,
++        text = "", label = "", createdAt = 1L, sequence = 1,
++    )
++}
+diff --git a/app/src/test/kotlin/com/simplemobiletools/clock/helpers/StopwatchEngineTest.kt b/app/src/test/kotlin/com/simplemobiletools/clock/helpers/StopwatchEngineTest.kt
+new file mode 100644
+index 0000000..4b41b84
+--- /dev/null
++++ b/app/src/test/kotlin/com/simplemobiletools/clock/helpers/StopwatchEngineTest.kt
+@@ -0,0 +1,159 @@
++package com.simplemobiletools.clock.helpers
++
++import org.junit.Assert.*
++import org.junit.Test
++
++class StopwatchEngineTest {
++    private var now = 50_000L
++    private val stopwatch = StopwatchEngine { now }
++
++    @Test fun pauseDoesNotDoubleElapsedTimeAndIgnoresPausedTime() {
++        stopwatch.start()
++        now += 10_000
++        stopwatch.pause()
++        assertEquals(10_000L, stopwatch.reading().totalTime)
++        now += 60_000
++        stopwatch.pause()
++        assertEquals(10_000L, stopwatch.reading().totalTime)
++        stopwatch.start()
++        now += 2_345
++        stopwatch.pause()
++        assertEquals(12_345L, stopwatch.reading().totalTime)
++        assertEquals(12_345L, stopwatch.reading().lapTime)
++    }
++
++    @Test fun sleepAndDelayedDisplayCallbacksDoNotLoseTime() {
++        stopwatch.start()
++        now += 6 * 60 * 60 * 1_000L
++        assertEquals(21_600_000L, stopwatch.reading().totalTime)
++        stopwatch.lap()
++        assertEquals(21_600_000L, stopwatch.laps()[1].totalTime)
++    }
++
++    @Test fun repeatedStartDoesNotRestartTheMeasurement() {
++        stopwatch.start()
++        now += 1_000
++        stopwatch.start()
++        now += 500
++        assertEquals(1_500L, stopwatch.reading().totalTime)
++        assertEquals(1, stopwatch.laps().size)
++    }
++
++    @Test fun firstLapIsMeasuredFromStartAndKeepsItsText() {
++        stopwatch.start()
++        stopwatch.updateLapText(1, "Первый этап")
++        now += 1_234
++        stopwatch.lap()
++        assertEquals(1_234L, stopwatch.laps()[1].lapTime)
++        assertEquals(1_234L, stopwatch.laps()[1].totalTime)
++        assertEquals("Первый этап", stopwatch.laps()[1].textTime)
++        assertEquals(0L, stopwatch.laps()[0].lapTime)
++        now += 765
++        stopwatch.lap()
++        assertEquals(765L, stopwatch.laps()[1].lapTime)
++        assertEquals(1_999L, stopwatch.laps()[1].totalTime)
++        assertEquals("Первый этап", stopwatch.laps()[2].textTime)
++    }
++
++    @Test fun lapDurationExcludesPausesAndUsesTheExactCaptureTime() {
++        stopwatch.start()
++        now += 1_000
++        stopwatch.lap()
++        now += 200
++        stopwatch.pause()
++        now += 5_000
++        stopwatch.start()
++        now += 300
++        stopwatch.lap()
++        assertEquals(500L, stopwatch.laps()[1].lapTime)
++        assertEquals(1_500L, stopwatch.laps()[1].totalTime)
++    }
++
++    @Test fun runningMeasurementCanBeRestoredWithoutATickingService() {
++        stopwatch.start()
++        now += 2_000
++        stopwatch.lap()
++        stopwatch.updateLapText(2, "Продолжение")
++        stopwatch.currentSetId = 7
++        now += 500
++        val saved = stopwatch.snapshot()
++        now += 30_000
++        val restored = StopwatchEngine { now }
++        restored.restore(saved, sameBoot = true)
++        assertEquals(StopwatchEngine.State.RUNNING, restored.state)
++        assertEquals(32_500L, restored.reading().totalTime)
++        assertEquals(30_500L, restored.reading().lapTime)
++        assertEquals("Продолжение", restored.laps()[0].textTime)
++        assertEquals(7, restored.currentSetId)
++        restored.lap()
++        assertEquals(3, restored.laps()[0].id)
++    }
++
++    @Test fun pausedMeasurementStaysPausedAfterRestore() {
++        stopwatch.start()
++        now += 900
++        stopwatch.pause()
++        val saved = stopwatch.snapshot()
++        now += 20_000
++        val restored = StopwatchEngine { now }
++        restored.restore(saved, sameBoot = true)
++        assertEquals(StopwatchEngine.State.PAUSED, restored.state)
++        assertEquals(900L, restored.reading().totalTime)
++    }
++
++    @Test fun rebootPreservesTheLastCheckpointAndPausesTheMeasurement() {
++        stopwatch.start()
++        now += 900
++        val saved = stopwatch.snapshot()
++        // Even if the next boot has a larger uptime, its time must not be added.
++        now += 100_000
++        val restored = StopwatchEngine { now }
++        restored.restore(saved, sameBoot = false)
++        assertEquals(StopwatchEngine.State.PAUSED, restored.state)
++        assertEquals(900L, restored.reading().totalTime)
++        assertEquals(1, restored.laps().size)
++    }
++
++    @Test fun backwardsClockIsAlsoTreatedAsAReboot() {
++        stopwatch.start()
++        now += 900
++        val saved = stopwatch.snapshot()
++        now = 100
++        val restored = StopwatchEngine { now }
++        restored.restore(saved, sameBoot = true)
++        assertEquals(StopwatchEngine.State.PAUSED, restored.state)
++        assertEquals(900L, restored.reading().totalTime)
++    }
++
++    @Test fun resetClearsTimesLapsAndTheSavedSetIdentity() {
++        stopwatch.start()
++        now += 100
++        stopwatch.lap()
++        stopwatch.currentSetId = 4
++        stopwatch.reset()
++        assertEquals(StopwatchEngine.State.RESETED, stopwatch.state)
++        assertEquals(0L, stopwatch.reading().totalTime)
++        assertEquals(0L, stopwatch.reading().lapTime)
++        assertTrue(stopwatch.laps().isEmpty())
++        assertEquals(0, stopwatch.currentSetId)
++        stopwatch.start()
++        assertEquals(1, stopwatch.laps().single().id)
++    }
++
++    @Test fun callersCannotMutateEngineStateThroughASnapshot() {
++        stopwatch.start()
++        stopwatch.laps().single().textTime = "External mutation"
++        stopwatch.snapshot().laps.single().totalTime = 999
++        assertEquals("", stopwatch.laps().single().textTime)
++        assertEquals(0L, stopwatch.laps().single().totalTime)
++    }
++
++    @Test fun lapIsIgnoredUnlessTheStopwatchIsRunning() {
++        stopwatch.lap()
++        assertTrue(stopwatch.laps().isEmpty())
++        stopwatch.start()
++        stopwatch.pause()
++        stopwatch.lap()
++        assertEquals(1, stopwatch.laps().size)
++    }
++}
+diff --git a/app/src/test/kotlin/com/simplemobiletools/clock/helpers/StopwatchSnapshotStoreTest.kt b/app/src/test/kotlin/com/simplemobiletools/clock/helpers/StopwatchSnapshotStoreTest.kt
+new file mode 100644
+index 0000000..a8d6193
+--- /dev/null
++++ b/app/src/test/kotlin/com/simplemobiletools/clock/helpers/StopwatchSnapshotStoreTest.kt
+@@ -0,0 +1,62 @@
++package com.simplemobiletools.clock.helpers
++
++import android.app.Application
++import android.content.Context
++import android.provider.Settings
++import org.junit.Assert.*
++import org.junit.Before
++import org.junit.Test
++import org.junit.runner.RunWith
++import org.robolectric.RobolectricTestRunner
++import org.robolectric.RuntimeEnvironment
++import org.robolectric.annotation.Config
++
++@RunWith(RobolectricTestRunner::class)
++@Config(application = Application::class, sdk = [28])
++class StopwatchSnapshotStoreTest {
++    private val context: Context get() = RuntimeEnvironment.getApplication()
++
++    @Before fun clearState() {
++        context.getSharedPreferences("current_stopwatch", Context.MODE_PRIVATE).edit().clear().commit()
++        Settings.Global.putInt(context.contentResolver, "boot_count", 12)
++    }
++
++    @Test fun snapshotRoundTripKeepsTimesTextAndSetNumber() {
++        var now = 100L
++        val stopwatch = StopwatchEngine { now }
++        stopwatch.start()
++        now += 123
++        stopwatch.updateLapText(1, "Этап 👟")
++        stopwatch.lap()
++        stopwatch.currentSetId = 4
++        val saved = stopwatch.snapshot()
++        StopwatchSnapshotStore(context).save(saved)
++        val restored = StopwatchSnapshotStore(context).load()!!
++        assertEquals(saved, restored.snapshot)
++        assertTrue(restored.sameBoot)
++    }
++
++    @Test fun rebootIsDetectedEvenWhenUptimeHasCaughtUpWithThePreviousBoot() {
++        val stopwatch = StopwatchEngine { 1_000L }
++        stopwatch.start()
++        StopwatchSnapshotStore(context).save(stopwatch.snapshot())
++        Settings.Global.putInt(context.contentResolver, "boot_count", 13)
++        assertFalse(StopwatchSnapshotStore(context).load()!!.sameBoot)
++    }
++
++    @Test fun resetRemovesThePreviousMeasurement() {
++        val stopwatch = StopwatchEngine { 100L }
++        stopwatch.start()
++        val store = StopwatchSnapshotStore(context)
++        store.save(stopwatch.snapshot())
++        stopwatch.reset()
++        store.save(stopwatch.snapshot())
++        assertNull(StopwatchSnapshotStore(context).load())
++    }
++
++    @Test fun corruptSnapshotDoesNotPreventLaunchingTheApp() {
++        context.getSharedPreferences("current_stopwatch", Context.MODE_PRIVATE)
++            .edit().putString("snapshot", "not valid json").commit()
++        assertNull(StopwatchSnapshotStore(context).load())
++    }
++}
+diff --git a/gradle/libs.versions.toml b/gradle/libs.versions.toml
+index fd5bda7..fa0a741 100644
+--- a/gradle/libs.versions.toml
++++ b/gradle/libs.versions.toml
+@@ -32,8 +32,8 @@ app-build-javaVersion = "VERSION_17"
+ app-build-kotlinJVMTarget = "17"
+ #versioning
+ app-version-appId = "com.simplemobiletools.clock"
+-app-version-versionCode = "42"
+-app-version-versionName = "5.11.2"
++app-version-versionCode = "43"
++app-version-versionName = "2.0"
+ biometricKtx = "1.2.0-alpha05"
+ [libraries]
+ #AndroidX
+-- 
+2.52.0
+
