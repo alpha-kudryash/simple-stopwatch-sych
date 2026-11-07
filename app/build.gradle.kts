@@ -70,11 +70,19 @@ android {
         register("core")
         register("fdroid")
         register("prepaid")
+        register("preview") {
+            applicationIdSuffix = ".preview"
+            // Installable release build for device testing without replacing an existing signed app.
+            signingConfig = signingConfigs.getByName("debug")
+        }
     }
 
     sourceSets {
         getByName("main").java.srcDirs("src/main/kotlin")
+        getByName("test").resources.srcDir("schemas")
     }
+
+    testOptions.unitTests.isIncludeAndroidResources = true
 
     compileOptions {
         val currentJavaVersionFromLibs = JavaVersion.valueOf(libs.versions.app.build.javaVersion.get().toString())
@@ -110,4 +118,7 @@ dependencies {
     implementation(libs.bundles.room)
     implementation(libs.androidx.biometric.ktx)
     ksp(libs.androidx.room.compiler)
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.11.1")
 }

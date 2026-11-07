@@ -3,10 +3,12 @@ package com.simplemobiletools.clock.adapters
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.DiffUtil
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.activities.SimpleActivity
 import com.simplemobiletools.clock.databinding.ItemSavesLapBinding
+import com.simplemobiletools.clock.extensions.stopwatchHelper
 import com.simplemobiletools.clock.extensions.formatStopwatchLag
 import com.simplemobiletools.clock.extensions.formatStopwatchTime
 import com.simplemobiletools.clock.extensions.getFormattedDuration
@@ -89,26 +91,19 @@ class LapAdapter(
     }
 
     private fun deleteItems() {
-        val positions = getSelectedItemPositions()
-        val lapsToRemove = positions.map { position ->
-            getItem(position)
-        }
-        val newLapsList = laps.filterNot { lapsToRemove.contains(it) }
-        updateItems(newLapsList)
-        removeSelectedItems(positions)
-        lapsToRemove.forEach(::deleteLap)
-    }
-
-    fun deleteAllItems() {
-        selectAll()
-        val positions = getSelectedItemPositions()
-        val lapsToRemove = positions.map { position ->
-            getItem(position)
-        }
-        val newLapsList = laps.filterNot { lapsToRemove.contains(it) }
-        updateItems(newLapsList)
-        removeSelectedItems(positions)
-        lapsToRemove.forEach(::deleteLap)
+        val selectedIds = selectedKeys.toSet()
+        val lapsToRemove = laps.filter { it.id in selectedIds }
+        if (lapsToRemove.isEmpty()) return
+        AlertDialog.Builder(simpleActivity)
+            .setTitle(R.string.confirm_delete_laps_title)
+            .setMessage(simpleActivity.getString(R.string.confirm_delete_laps_message, lapsToRemove.size))
+            .setPositiveButton(R.string.delete_laps_action) { _, _ ->
+                simpleActivity.stopwatchHelper.deleteLaps(lapsToRemove) {
+                    EventBus.getDefault().post(StopwatchEvent.Refresh)
+                }
+            }
+            .setNegativeButton(com.simplemobiletools.commons.R.string.cancel, null)
+            .show()
     }
 
     private fun setupView(view: View, stopwatch: Stopwatch) {
@@ -138,12 +133,8 @@ class LapAdapter(
         }
     }
 
-    private fun deleteLap(lap: Stopwatch) {
-        EventBus.getDefault().post(StopwatchEvent.Delete(lap.id!!))
-    }
-
     fun updateItems(newItems: List<Stopwatch>) {
-        //lastLapId = 0
+        laps = newItems.toList()
         submitList(newItems)
         //laps.sort()
         //notifyDataSetChanged()

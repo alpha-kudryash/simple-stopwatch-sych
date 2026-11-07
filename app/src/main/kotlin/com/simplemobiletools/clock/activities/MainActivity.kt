@@ -160,26 +160,25 @@ class MainActivity : SimpleActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
-            if (event.action == KeyEvent.ACTION_UP) {
-            //if (intent.extras?.containsKey(OPEN_TAB) == true) {
-            val tabToOpen = intent.getIntExtra(OPEN_TAB, TAB_STOPWATCH)
-            binding.viewPager.setCurrentItem(tabToOpen, false)
-            if (tabToOpen == TAB_STOPWATCH) {
-                    (binding.viewPager.adapter as ViewPagerAdapter).startResetwatch()
-            }}
-            triggerVibration(VibrationType.LOW)
-            return true
+        return when (event.keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP -> {
+                if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) {
+                    binding.viewPager.setCurrentItem(TAB_STOPWATCH, false)
+                    getViewPagerAdapter()?.startOrLapStopwatch()
+                    triggerVibration(VibrationType.LOW)
+                }
+                true
+            }
+            KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 &&
+                    binding.viewPager.currentItem == TAB_STOPWATCH) {
+                    getViewPagerAdapter()?.pauseStopwatch()
+                    triggerVibration(VibrationType.LOW)
+                }
+                true
+            }
+            else -> super.dispatchKeyEvent(event)
         }
-        if (event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-            if (event.action == KeyEvent.ACTION_DOWN) {
-            if (binding.viewPager.currentItem == TAB_STOPWATCH) {
-                (binding.viewPager.adapter as ViewPagerAdapter).pauseStopwatch()
-            }}
-            triggerVibration(VibrationType.LOW)
-            return true
-        }
-        return super.dispatchKeyEvent(event)
     }
 
     private fun triggerVibration(type: VibrationType) {
@@ -217,7 +216,6 @@ class MainActivity : SimpleActivity() {
             refreshMenuItems()
             viewPagerAdapter.refreshLapFragment()
             viewPagerAdapter.updateLapPosition()
-            viewPagerAdapter.updateCurrentIdStopwatch()
         }
 
         val tabToOpen = intent.getIntExtra(OPEN_TAB, config.lastUsedViewPagerPage)

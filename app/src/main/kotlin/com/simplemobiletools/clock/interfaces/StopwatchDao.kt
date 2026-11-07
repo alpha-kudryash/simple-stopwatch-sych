@@ -36,6 +36,18 @@ interface StopwatchDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertOrUpdateStopwatch(stopwatchList: List<Stopwatch>): List<Long>
 
+    /** Allocate the set number and replace its rows atomically, keeping an existing set on failure. */
+    @Transaction
+    fun saveSet(stopwatchList: List<Stopwatch>): Pair<Int, List<Long>> {
+        val first = stopwatchList.firstOrNull() ?: return 0 to emptyList()
+        val setId = first.stopwatchSetNum.takeIf { it > 0 } ?: ((getMaxSetNum() ?: 0) + 1)
+        val rows = stopwatchList.map {
+            it.copy(stopwatchSetNum = setId, label = it.label.ifBlank { setId.toString() })
+        }
+        deleteSet(setId)
+        return setId to insertOrUpdateStopwatch(rows)
+    }
+
     @Query("DELETE FROM laps WHERE id=:id")
     fun deleteLap(id: Int)
 

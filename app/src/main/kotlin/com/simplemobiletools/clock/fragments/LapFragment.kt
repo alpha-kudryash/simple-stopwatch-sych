@@ -1,6 +1,7 @@
 package com.simplemobiletools.clock.fragments
 
-import android.app.AlertDialog
+import androidx.appcompat.app.AlertDialog
+import com.simplemobiletools.clock.R
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,7 +14,7 @@ import com.simplemobiletools.clock.dialogs.EditTimerDialog
 import com.simplemobiletools.clock.extensions.stopwatchHelper
 import com.simplemobiletools.clock.helpers.DisabledItemChangeAnimator
 import com.simplemobiletools.clock.models.Stopwatch
-import com.simplemobiletools.clock.models.TimerEvent
+import com.simplemobiletools.clock.models.StopwatchEvent
 import com.simplemobiletools.commons.extensions.getProperBackgroundColor
 import com.simplemobiletools.commons.extensions.getProperTextColor
 import com.simplemobiletools.commons.extensions.hideKeyboard
@@ -46,8 +47,9 @@ class LapFragment : Fragment() {
                 activity?.run {
                     hideKeyboard()
                     openWarningDeleteAll{
-                        lapAdapter.deleteAllItems()
-                        stopwatchHelper.deleteAllLaps()
+                        stopwatchHelper.deleteAllLaps {
+                            activity?.runOnUiThread { refreshLaps() }
+                        }
                     }
                 }
             }
@@ -103,7 +105,7 @@ class LapFragment : Fragment() {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun onMessageEvent(event: TimerEvent.Refresh) {
+    fun onMessageEvent(event: StopwatchEvent.Refresh) {
         refreshLaps()
     }
 
@@ -132,12 +134,12 @@ class LapFragment : Fragment() {
 
     private fun openWarningDeleteAll(onConfirm: () -> Unit) {
         AlertDialog.Builder(requireContext())
-            .setTitle("Предупреждение")
-            .setMessage("Вы уверены, что хотите удалить все отметки?")
-            .setPositiveButton("Да") { _, _ ->
+            .setTitle(R.string.confirm_delete_all_laps_title)
+            .setMessage(R.string.confirm_delete_all_laps_message)
+            .setPositiveButton(R.string.delete_laps_action) { _, _ ->
                 onConfirm() // Выполняем переданную функцию, если пользователь согласился
             }
-            .setNegativeButton("Нет", null) // Просто закрываем диалог, если пользователь отказался
+            .setNegativeButton(com.simplemobiletools.commons.R.string.cancel, null) // Просто закрываем диалог, если пользователь отказался
             .show()
         /*currentEditAlarmDialog = EditTimerDialog(activity as SimpleActivity, stopwatch) {
             currentEditAlarmDialog = null

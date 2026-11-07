@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import com.simplemobiletools.clock.R
 import com.simplemobiletools.clock.activities.SimpleActivity
@@ -32,6 +33,7 @@ class StopwatchFragment : Fragment() {
     private lateinit var binding: FragmentStopwatchBinding
     private var currentEditStopwatchDialog: EditStopwatchDialog? = null
     private lateinit var lapAdapter: LapAdapter
+    private var resetDialog: AlertDialog? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val sorting = requireContext().config.stopwatchLapsSort
@@ -96,8 +98,8 @@ class StopwatchFragment : Fragment() {
 
         CurrentStopwatch.addUpdateListener(updateListener)
         updateLaps()
-        binding.stopwatchSortingIndicatorsHolder.beVisibleIf(CurrentStopwatch.laps.isNotEmpty())
-        if (CurrentStopwatch.laps.isNotEmpty()) {
+        binding.stopwatchSortingIndicatorsHolder.beVisibleIf(CurrentStopwatch.laps.size > 1)
+        if (CurrentStopwatch.laps.size > 1) {
             updateSorting(Lap.sorting)
         }
 
@@ -121,67 +123,71 @@ class StopwatchFragment : Fragment() {
         }
     }
 
-    private fun updateStartLapIcon(state: CurrentStopwatch.State) {
+    private fun updateStartLapIcon(state: StopwatchEngine.State) {
         val drawableId =
-            if (state == CurrentStopwatch.State.RUNNING) com.simplemobiletools.commons.R.drawable.ic_camera_vector else com.simplemobiletools.commons.R.drawable.ic_play_vector
+            if (state == StopwatchEngine.State.RUNNING) com.simplemobiletools.commons.R.drawable.ic_camera_vector else com.simplemobiletools.commons.R.drawable.ic_play_vector
         val iconColor = if (requireContext().getProperPrimaryColor() == Color.WHITE) Color.BLACK else Color.WHITE
         binding.stopwatchPlayLap.setImageDrawable(resources.getColoredDrawableWithColor(drawableId, iconColor))
     }
 
-    private fun updatePauseResetIcon(state: CurrentStopwatch.State) {
+    private fun updatePauseResetIcon(state: StopwatchEngine.State) {
         val drawableId =
-            if (state == CurrentStopwatch.State.RUNNING) com.simplemobiletools.commons.R.drawable.ic_pause_vector else com.simplemobiletools.commons.R.drawable.ic_reset_vector
+            if (state == StopwatchEngine.State.RUNNING) com.simplemobiletools.commons.R.drawable.ic_pause_vector else com.simplemobiletools.commons.R.drawable.ic_reset_vector
         val iconColor = if (requireContext().getProperPrimaryColor() == Color.WHITE) Color.BLACK else Color.WHITE
         binding.stopwatchPauseReset.setImageDrawable(resources.getColoredDrawableWithColor(drawableId, iconColor))
     }
 
     private fun togglePlayLap() {
+        // Start at the button event, not after the notification permission dialog closes.
+        CurrentStopwatch.start()
+        updateLaps()
         (activity as SimpleActivity).handleNotificationPermission { granted ->
-            if (granted) {
-                CurrentStopwatch.toggle(true)
-                updateLaps()
-            } else {
+            if (!granted) {
                 PermissionRequiredDialog(
                     activity as SimpleActivity,
-                    com.simplemobiletools.commons.R.string.allow_notifications_reminders, //todo retext
+                    com.simplemobiletools.commons.R.string.allow_notifications_reminders,
                     { (activity as SimpleActivity).openNotificationSettings() })
-                CurrentStopwatch.toggle(true)
-                updateLaps()
             }
         }
-        //CurrentStopwatch.toggle(true)
-        //updateLaps()
-
-        activity?.stopwatchHelper?.getMaxSetIdStopwatch { id -> CurrentStopwatch.currentSetId = id + 1 }
     }
 
     private fun updateDisplayedText(totalTime: Long, lapTime: Long) {
         binding.stopwatchTime.text = totalTime.formatStopwatchTime()
-        if (CurrentStopwatch.laps.isNotEmpty() && lapTime != -1L) {
-            stopwatchAdapter.updateLastField(lapTime, totalTime)
-        }
     }
 
     private fun pauseResetStopwatch() {
-        if (CurrentStopwatch.state == CurrentStopwatch.State.PAUSED) {
-            CurrentStopwatch.reset()
-            //stopwatchHelper.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
-            updateLaps()
-            binding.apply {
-                stopwatchPauseReset.beGone()
-                stopwatchSave.beGone()
-                stopwatchTime.text = 0L.formatStopwatchTime()
-                stopwatchSortingIndicatorsHolder.beInvisible()
-                stopwatchSave.beInvisible() //todo warning mb
-            }
+        if (CurrentStopwatch.state == StopwatchEngine.State.PAUSED) {
+            confirmResetStopwatch()
         }
-        if (CurrentStopwatch.state == CurrentStopwatch.State.RUNNING) {
+        if (CurrentStopwatch.state == StopwatchEngine.State.RUNNING) {
             CurrentStopwatch.pause()
         }
     }
 
+    private fun confirmResetStopwatch() {
+        if (resetDialog?.isShowing == true) return
+        resetDialog = AlertDialog.Builder(requireContext())
+            .setTitle(R.string.confirm_stopwatch_reset_title)
+            .setMessage(R.string.confirm_stopwatch_reset_message)
+            .setPositiveButton(R.string.reset_stopwatch_action) { _, _ ->
+                CurrentStopwatch.reset()
+                updateLaps()
+                binding.stopwatchSortingIndicatorsHolder.beInvisible()
+            }
+            .setNegativeButton(com.simplemobiletools.commons.R.string.cancel, null)
+            .create().also { dialog ->
+                dialog.setOnDismissListener { resetDialog = null }
+                dialog.show()
+            }
+    }
+
+    override fun onDestroyView() {
+        resetDialog?.dismiss()
+        super.onDestroyView()
+    }
+
     fun pauseStopwatch() {
-        if (CurrentStopwatch.state == CurrentStopwatch.State.RUNNING) {
+        if (CurrentStopwatch.state == StopwatchEngine.State.RUNNING) {
             CurrentStopwatch.pause()
         }
     }
@@ -232,41 +238,24 @@ class StopwatchFragment : Fragment() {
 
     fun startLapStopwatch() {
         when (CurrentStopwatch.state) {
-            CurrentStopwatch.State.RESETED -> {
+            StopwatchEngine.State.RESETED -> {
                 togglePlayLap()
-                CurrentStopwatch.lap()
-                updateLaps()
             }
-            CurrentStopwatch.State.PAUSED -> togglePlayLap()
-            CurrentStopwatch.State.RUNNING -> {
+            StopwatchEngine.State.PAUSED -> togglePlayLap()
+            StopwatchEngine.State.RUNNING -> {
                 CurrentStopwatch.lap()
                 binding.stopwatchSortingIndicatorsHolder.beVisible()
                 updateLaps()
-                //stopwatchHelper.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
             }
             else -> {}
         } // todo add pause
     }
 
-    fun setCurrentIdStopwatch() {
-        activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
-    }
-
-    fun keyUpStartResetStopwatch() {
+    fun keyUpStartLapStopwatch() {
         when (CurrentStopwatch.state) {
-            CurrentStopwatch.State.RESETED -> togglePlayLap()
-            CurrentStopwatch.State.PAUSED -> {
-                CurrentStopwatch.reset()
-                updateLaps()
-                binding.apply {
-                    stopwatchPauseReset.beGone()
-                    stopwatchSave.beGone()
-                    stopwatchTime.text = 0L.formatStopwatchTime()
-                    stopwatchSortingIndicatorsHolder.beInvisible()
-                    stopwatchSave.beInvisible() //todo warning mb
-                }
-            }
-            CurrentStopwatch.State.RUNNING -> {
+            StopwatchEngine.State.RESETED -> togglePlayLap()
+            StopwatchEngine.State.PAUSED -> togglePlayLap()
+            StopwatchEngine.State.RUNNING -> {
                 CurrentStopwatch.lap()
                 binding.stopwatchSortingIndicatorsHolder.beVisible()
                 updateLaps()
@@ -280,20 +269,20 @@ class StopwatchFragment : Fragment() {
             updatePrimaryColor()
             updateBackgroundColor(requireContext().getProperBackgroundColor())
             updateTextColor(requireContext().getProperTextColor())
-            updateItems(CurrentStopwatch.laps)
+            updateItems(ArrayList(CurrentStopwatch.laps.drop(1)))
             binding.stopwatchList.post {
                 scrollToLastLap()
                 stopwatchAdapter.lastEditLapText?.requestFocus()
             }
-            binding.stopwatchSave.beVisibleIf(CurrentStopwatch.laps.isNotEmpty())
+            binding.stopwatchSave.beVisibleIf(CurrentStopwatch.laps.size > 1)
         }
-        activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
     }
 
     private fun saveLaps() {
         activity?.run {
             hideKeyboard()
-            openEditListLap(createNewListLap(CurrentStopwatch.laps, CurrentStopwatch.currentSetId))
+            val completedLaps = createNewListLap(CurrentStopwatch.laps, CurrentStopwatch.currentSetId)
+            if (completedLaps.isNotEmpty()) openEditListLap(completedLaps)
         }
     }
 
@@ -301,7 +290,6 @@ class StopwatchFragment : Fragment() {
         currentEditStopwatchDialog = EditStopwatchDialog(activity as SimpleActivity, stopwatchList) {
             currentEditStopwatchDialog = null
         }
-        //activity?.stopwatchHelper?.getMaxSetIdStopwatch { id ->  CurrentStopwatch.currentSetId = id + 1 }
     }
 
     private val updateListener = object : CurrentStopwatch.UpdateListener {
@@ -311,11 +299,11 @@ class StopwatchFragment : Fragment() {
             }
         }
 
-        override fun onStateChanged(state: CurrentStopwatch.State) {
+        override fun onStateChanged(state: StopwatchEngine.State) {
             activity?.runOnUiThread {
                 updateStartLapIcon(state)
                 updatePauseResetIcon(state)
-                binding.stopwatchPauseReset.beVisibleIf(state != CurrentStopwatch.State.RESETED)
+                binding.stopwatchPauseReset.beVisibleIf(state != StopwatchEngine.State.RESETED)
             }
         }
     }

@@ -9,6 +9,7 @@ import android.widget.TextView
 import com.simplemobiletools.clock.activities.SimpleActivity
 import com.simplemobiletools.clock.databinding.ItemLapBinding
 import com.simplemobiletools.clock.extensions.formatStopwatchTime
+import com.simplemobiletools.clock.helpers.CurrentStopwatch
 import com.simplemobiletools.clock.helpers.SORT_BY_LAP
 import com.simplemobiletools.clock.helpers.SORT_BY_LAP_TIME
 import com.simplemobiletools.clock.helpers.SORT_BY_TOTAL_TIME
@@ -18,9 +19,6 @@ import com.simplemobiletools.commons.views.MyRecyclerView
 
 class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyclerView: MyRecyclerView, itemClick: (Any) -> Unit) :
     MyRecyclerViewAdapter(activity, recyclerView, itemClick) {
-    private var lastLapTimeView: TextView? = null
-    private var lastTotalTimeView: TextView? = null
-    private var lastLapId = 0
     var lastEditLapText: TextView? = null
 
 
@@ -57,16 +55,11 @@ class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyc
     override fun getItemCount() = laps.size
 
     fun updateItems(newItems: ArrayList<Lap>) {
-        lastLapId = 0
+        lastEditLapText = null
         laps = newItems.clone() as ArrayList<Lap>
         laps.sort()
         notifyDataSetChanged()
         finishActMode()
-    }
-
-    fun updateLastField(lapTime: Long, totalTime: Long) {
-        lastLapTimeView?.text = lapTime.formatStopwatchTime()
-        lastTotalTimeView?.text = totalTime.formatStopwatchTime()
     }
 
     private fun setupView(view: View, lap: Lap) {
@@ -90,32 +83,23 @@ class StopwatchAdapter(activity: SimpleActivity, var laps: ArrayList<Lap>, recyc
             }
 
             editLapText.apply {
-                setText(lap.textTime) // Отображаем текущий текст, если он есть
-                setOnFocusChangeListener { _, hasFocus ->
-                    if (!hasFocus) {
-                        // Обновляем соответствующий Lap, когда пользователь теряет фокус
-                        lap.textTime = text.toString() // Сохраняем введенный текст в объект Lap
-                        // Здесь можно выполнить любые дополнительные действия, например, обновить UI или базы данных
+                (tag as? TextWatcher)?.let { removeTextChangedListener(it) }
+                setText(lap.textTime)
+                val watcher = object : TextWatcher {
+                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                    override fun afterTextChanged(text: Editable?) {
+                        lap.textTime = text.toString()
+                        CurrentStopwatch.updateLapText(lap.id, lap.textTime)
                     }
                 }
-                if (lap.id == laps.maxOfOrNull { it.id }) {
-                    lastEditLapText = this
-                }
-
-                // Можно добавить обработчик для отслеживания изменений текста
-                /*addTextChangedListener(object : TextWatcher {
-                    override fun beforeTextChanged(charSequence: CharSequence?, start: Int, count: Int, after: Int) {}
-                    override fun onTextChanged(charSequence: CharSequence?, start: Int, before: Int, count: Int) {}
-                    override fun afterTextChanged(editable: Editable?) {
-                        lap.textTime = editable.toString() // Обновляем значение в объекте Lap
-                    }
-                })*/
+                addTextChangedListener(watcher)
+                tag = watcher
             }
 
-            if (lap.id > lastLapId) {
-                lastLapTimeView = lapLapTime
-                lastTotalTimeView = lapTotalTime
-                lastLapId = lap.id
+            if (lastEditLapText === editLapText) lastEditLapText = null
+            if (lap.id == laps.maxOfOrNull { it.id }) {
+                lastEditLapText = editLapText
             }
         }
     }

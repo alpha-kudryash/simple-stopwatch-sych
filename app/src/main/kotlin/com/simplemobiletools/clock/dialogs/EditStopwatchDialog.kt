@@ -4,6 +4,7 @@ import com.simplemobiletools.clock.activities.SimpleActivity
 import com.simplemobiletools.clock.databinding.DialogEditStopwatchBinding
 import com.simplemobiletools.clock.extensions.*
 import com.simplemobiletools.clock.models.Stopwatch
+import com.simplemobiletools.clock.helpers.CurrentStopwatch
 import com.simplemobiletools.commons.extensions.*
 import androidx.appcompat.app.AlertDialog
 import com.simplemobiletools.clock.commons.extensions.getProperTextColor
@@ -28,15 +29,22 @@ class EditStopwatchDialog(val activity: SimpleActivity, val stopwatchList: List<
                             if (binding.editStopwatch.value != "")
                                 stopwatch.label = binding.editStopwatch.value
                             else
-                                stopwatch.label = stopwatch.stopwatchSetNum.toString()
+                                stopwatch.label = ""
                         }
-                        activity.stopwatchHelper.insertOrUpdateStopwatch(stopwatchList) { ids ->
-                            //activity.config.timerLastConfig = stopwatchList
-                            val firstId = ids.firstOrNull()
-                            if (firstId != null) { //todo  говнокод
-                                callback(firstId) // Передаём первый идентификатор в callback
+                        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
+                        activity.stopwatchHelper.insertOrUpdateStopwatch(stopwatchList, onError = { error ->
+                            activity.runOnUiThread {
+                                alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                                activity.showErrorToast(error)
                             }
-                            alertDialog.dismiss()
+                        }) { ids, setId ->
+                            activity.runOnUiThread {
+                                ids.firstOrNull()?.let { firstId ->
+                                    CurrentStopwatch.currentSetId = setId
+                                    callback(firstId)
+                                }
+                                alertDialog.dismiss()
+                            }
                         }
                     }
                 }
